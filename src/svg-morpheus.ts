@@ -21,7 +21,8 @@ import {
   CallbackFunction, 
   AnimationFrameId, 
   BoundingBox,
-  StyleAttributes
+  StyleAttributes,
+  CurveData
 } from './types';
 
 export class SVGMorpheus {
@@ -323,7 +324,7 @@ export class SVGMorpheus {
         // Add items to fromIcon/toIcon if needed
         if (!this._fromIconItems[i]) {
           if (!!this._toIconItems[i]) {
-            toBB = curvePathBBox(path2curve(this._toIconItems[i].path));
+            toBB = curvePathBBox(path2curve(this._toIconItems[i].path) as CurveData);
             this._fromIconItems.push({
               path: 'M' + toBB.cx + ',' + toBB.cy + 'l0,0',
               attrs: {},
@@ -345,7 +346,7 @@ export class SVGMorpheus {
         }
         if (!this._toIconItems[i]) {
           if (!!this._fromIconItems[i]) {
-            toBB = curvePathBBox(path2curve(this._fromIconItems[i].path));
+            toBB = curvePathBBox(path2curve(this._fromIconItems[i].path) as CurveData);
             this._toIconItems.push({
               path: 'M' + toBB.cx + ',' + toBB.cy + 'l0,0',
               attrs: {},
@@ -383,7 +384,7 @@ export class SVGMorpheus {
         const toIconItem = this._toIconItems[i];
 
         // Calculate from/to curve data and set to fromIcon/toIcon
-        const curves = path2curve(this._fromIconItems[i].path, this._toIconItems[i].path);
+        const curves = path2curve(this._fromIconItems[i].path, this._toIconItems[i].path) as [CurveData, CurveData];
         fromIconItem.curve = curves[0];
         toIconItem.curve = curves[1];
 
@@ -450,7 +451,7 @@ export class SVGMorpheus {
     for (i = 0, len = this._curIconItems.length; i < len; i++) {
       if (this._fromIconItems[i].curve && this._toIconItems[i].curve) {
         this._curIconItems[i].curve = curveCalc(this._fromIconItems[i].curve!, this._toIconItems[i].curve!, progress);
-        this._curIconItems[i].path = path2string(this._curIconItems[i].curve);
+        this._curIconItems[i].path = path2string(this._curIconItems[i].curve!);
       }
 
       if (this._fromIconItems[i].attrsNorm && this._toIconItems[i].attrsNorm) {
