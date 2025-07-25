@@ -606,7 +606,7 @@ export class SVGMorpheus {
   }
 
   private _updateAnimationProgress(progress: number): void {
-    progress = easings[this._easing](progress);
+    progress = (easings as any)[this._easing](progress);
 
     let i: number, j: string, k: string, len: number;
     // Update path/attrs/transform
@@ -747,7 +747,7 @@ export class SVGMorpheus {
    * });
    */
   public registerEasing(name: string, fn: (progress: number) => number): void {
-    easings[name] = fn;
+    (easings as any)[name] = fn;
   }
 
   /**
