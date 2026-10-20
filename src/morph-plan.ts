@@ -313,7 +313,8 @@ function fit(a: Point[], b: Point[]) {
     bc = mean(b);
   let dot = 0,
     cross = 0,
-    energy = 0;
+    energy = 0,
+    targetEnergy = 0;
   for (let i = 0; i < a.length; i++) {
     const x = a[i][0] - ac[0],
       y = a[i][1] - ac[1],
@@ -322,10 +323,19 @@ function fit(a: Point[], b: Point[]) {
     dot += x * X + y * Y;
     cross += x * Y - y * X;
     energy += x * x + y * y;
+    targetEnergy += X * X + Y * Y;
   }
-  const angle = energy > 1e-10 ? Math.atan2(cross, dot) : 0;
-  const scale =
-    energy > 1e-10 ? Math.max(1e-4, Math.hypot(dot, cross) / energy) : 1;
+  const correlation = Math.hypot(dot, cross);
+  const aligned =
+    energy > 1e-10 &&
+    targetEnergy > 1e-10 &&
+    correlation > 1e-6 * Math.sqrt(energy * targetEnergy);
+  const angle = aligned ? Math.atan2(cross, dot) : 0;
+  const scale = aligned
+    ? Math.max(1e-4, correlation / energy)
+    : energy > 1e-10 && targetEnergy > 1e-10
+      ? Math.sqrt(targetEnergy / energy)
+      : 1;
   let error = 0;
   for (let i = 0; i < a.length; i++) {
     const q = rotate([b[i][0] - bc[0], b[i][1] - bc[1]], -angle);
@@ -436,9 +446,24 @@ export function createMorphPlan(
   const pairs = match(source.map(feature), target.map(feature));
   const plans = pairs.map((pair) => {
     const a = pair.fromIndex === null ? [] : source[pair.fromIndex];
-    const b = pair.toIndex === null ? [] : target[pair.toIndex];
+    let b = pair.toIndex === null ? [] : target[pair.toIndex];
     const option =
       pair.toIndex === null ? from[pair.fromIndex!] : to[pair.toIndex];
+    // Reversing every contour of a filled path preserves its fill and holes.
+    // Align the dominant winding before fitting instead of dividing by a near-zero
+    // correlation for clockwise/counterclockwise versions of the same artwork.
+    const dominant = (contours: Contour[]) =>
+      contours
+        .map((c) => feature([c]).area)
+        .sort((x, y) => Math.abs(y) - Math.abs(x))[0] ?? 0;
+    if (
+      a.length &&
+      b.length &&
+      a.every((c) => c.closed) &&
+      b.every((c) => c.closed) &&
+      dominant(a) * dominant(b) < 0
+    )
+      b = b.map((c) => orient(c, 0, true));
     return match(
       a.map((c) => feature([c])),
       b.map((c) => feature([c])),

@@ -24,6 +24,26 @@ const span = (d) => {
 };
 const bounds = (d) => curvePathBBox(path2curve(d));
 const box = (x, y = 0) => ({ d: `M${x} ${y}h2v2h-2Z` });
+test("opposite winding square/circle and interrupted intermediate contours stay within icon bounds", () => {
+  const square = { d: "M3 3H21V21H3Z" },
+    circle = { d: "M2 12A10 10 0 1 0 22 12A10 10 0 1 0 2 12Z" };
+  for (const [a, b] of [
+    [square, circle],
+    [circle, square],
+  ]) {
+    const plan = createMorphPlan([a], [b]);
+    for (const t of [0, 0.1, 0.3, 0.5, 0.684757, 0.9, 1, 1.01]) {
+      const d = plan.frame(t)[0],
+        bb = bounds(d);
+      assert.ok(
+        bb.x > -1 && bb.y > -1 && bb.w < 25 && bb.h < 25,
+        JSON.stringify({ t, bb }),
+      );
+      const interrupted = bounds(createMorphPlan([{ d }], [a]).frame(0.5)[0]);
+      assert.ok(interrupted.w < 25 && interrupted.h < 25);
+    }
+  }
+});
 const signedArea = (d) => {
   const result = [];
   let points = [],
