@@ -4,6 +4,7 @@ import { JSDOM } from "jsdom";
 import {
   SVGMorpheus,
   styleToNorm,
+  styleNormCalc,
   path2curve,
   curvePathBBox,
 } from "../dist/index.js";
@@ -45,6 +46,64 @@ const make = (el) =>
   new SVGMorpheus(el, { iconId: "a", duration: 100, rotation: "none" });
 const valid = (el) =>
   assert.doesNotMatch(el.innerHTML, /[\u0000]|NaN|Infinity|undefined/);
+
+test("multicolor paths interpolate fill, stroke and alpha independently", () => {
+  const el = svg('<g id="a"><path fill="#ff0000" stroke="#00ff00" fill-opacity="0.2" d="M1 1h3v3h-3Z"/><path fill="#0000ff" d="M18 1h3v3h-3Z"/></g><g id="b"><path fill="#ffffff" d="M18 1h3v3h-3Z"/><path fill="#0000ff" stroke="#ff0000" fill-opacity="0.8" d="M1 1h3v3h-3Z"/></g>');
+  const m = make(el);
+  m.to("b", { easing: "linear" });
+  tick(0); tick(50);
+  const [right, left] = el.querySelectorAll("g path");
+  assert.equal(right.getAttribute("fill"), "rgba(128,128,255,1)");
+  assert.equal(left.getAttribute("fill"), "rgba(128,0,128,1)");
+  assert.equal(left.getAttribute("stroke"), "rgba(128,128,0,1)");
+  assert.equal(Number(left.getAttribute("fill-opacity")), 0.5);
+  tick(100);
+  assert.equal(left.getAttribute("fill"), "rgba(0,0,255,1)");
+  m.destroy();
+});
+
+test("RGBA colors interpolate alpha without mixing unrelated paths", () => {
+  const [a, b] = styleToNorm({ fill: "rgba(255,0,0,0.2)" }, { fill: "rgba(0,0,255,0.8)" });
+  assert.deepEqual(styleNormCalc(a, b, 0.5).fill, { r: 127.5, g: 0, b: 127.5, opacity: 0.5 });
+});
+
+test("nested paint overrides and opacity multiplication are retained for separate paths", () => {
+  const el = svg('<g id="a" fill="red" opacity="0.5"><g fill="blue" opacity="0.4"><path d="M1 1h3v3h-3Z"/></g><path fill="green" d="M18 1h3v3h-3Z"/></g>');
+  const m = make(el);
+  const [blue, green] = el.querySelectorAll("g path");
+  assert.equal(blue.getAttribute("fill"), "rgba(0,0,255,1)");
+  assert.equal(Number(blue.getAttribute("opacity")), 0.2);
+  assert.equal(green.getAttribute("fill"), "rgba(0,128,0,1)");
+  assert.equal(Number(green.getAttribute("opacity")), 0.5);
+  m.destroy();
+});
+
+test("gradient paint is a discrete switch, not stop interpolation", () => {
+  const [a, b] = styleToNorm({ fill: "url(#red-blue)" }, { fill: "url(#green-yellow)" });
+  assert.equal(styleNormCalc(a, b, 0.49).fill, "url(#red-blue)");
+  assert.equal(styleNormCalc(a, b, 0.5).fill, "url(#green-yellow)");
+});
+
+test("KNOWN LIMITATION: eight-digit hexadecimal alpha should be retained", { todo: "Color parser does not support #RRGGBBAA" }, () => {
+  const [a] = styleToNorm({ fill: "#ff000080" }, { fill: "blue" });
+  assert.equal(a.fill.r, 255);
+  assert.ok(Math.abs(a.fill.opacity - 128 / 255) < 0.001);
+});
+
+test("KNOWN LIMITATION: modern CSS space-separated RGB should be parsed", { todo: "Color parser only accepts legacy comma syntax" }, () => {
+  const [a] = styleToNorm({ fill: "rgb(255 0 0 / 50%)" }, { fill: "blue" });
+  assert.equal(a.fill.r, 255);
+  assert.equal(a.fill.opacity, 0.5);
+});
+
+test("KNOWN LIMITATION: overlapping group opacity requires group compositing", { todo: "Flattening group opacity into each path changes overlap compositing" }, () => {
+  const el = svg('<g id="a" opacity="0.5"><path fill="red" d="M0 0h10v10H0Z"/><path fill="blue" d="M0 0h10v10H0Z"/></g>');
+  const m = make(el);
+  // Two opaque overlapping children in a 0.5-opacity group must remain alpha 0.5.
+  const [a, b] = [...el.querySelectorAll("g path")].map(p => Number(p.getAttribute("opacity")));
+  assert.equal(a + b * (1 - a), 0.5);
+  m.destroy();
+});
 test("zero duration commits synchronously, invalid targets do not cancel a running transition", () => {
   const el = svg(),
     m = make(el);
