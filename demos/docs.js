@@ -2,9 +2,17 @@ import SVGMorpheus, { easings, springProgress } from "../src/index.ts";
 import { analyzeSharedBoundaries } from "../research/shared-boundaries.mjs";
 import { eyePair } from "../research/fixtures.mjs";
 import { createSharedStrokePlan } from "../research/shared-stroke.mjs";
+import { createSharedFillPlan } from "../research/shared-fill.mjs";
 import pkg from "../package.json";
 
 const english = {
+  eyeTitle: "Eye transition: keep the shared region fixed",
+  eyeHint:
+    "Actual animation on the left, region breakdown on the right. Shared areas stay in place, source-only areas fade out, and target-only areas reveal diagonally. Play in reverse or scrub individual frames.",
+  eyeActual: "Actual appearance",
+  eyeRegions: "Green stays · Orange fades · Blue reveals",
+  eyeLimit:
+    "Research uses SVG masks to retain the common filled region, with fading and directional reveal for differences. This is not geometric contour morphing. Opaque same-color fills only; not connected to the production core.",
   strokeTitle: "Keep AB, animate only BC",
   strokeHint:
     "Green shared geometry stays fixed while the blue difference retracts or extends along its original curve. Supports lines, curves and reversed paths. Open-stroke research only; filled regions and holes are not supported.",
@@ -160,6 +168,13 @@ function renderResearch() {
 }
 function setLanguage(value) {
   language = value;
+  for (const [id, zh, en] of [
+    ["eye-animation", "眼睛共区动画", "Eye shared-region animation"],
+    ["eye-regions", "眼睛区域分解", "Eye region breakdown"],
+  ])
+    document
+      .querySelector(`#${id}`)
+      .setAttribute("aria-label", language === "zh" ? zh : en);
   document
     .querySelector("#stroke-case")
     .setAttribute(
@@ -269,8 +284,49 @@ document.querySelector("#stroke-play").addEventListener("click", () => {
   strokeRAF = requestAnimationFrame(tick);
 });
 resetStroke();
+const eyePlan = createSharedFillPlan(eyePair.from, eyePair.to, {
+  prefix: "eye-actual",
+});
+const regionPlan = createSharedFillPlan(eyePair.from, eyePair.to, {
+  prefix: "eye-regions",
+});
+const eyeSlider = document.querySelector("#eye-progress");
+let eyeProgress = 0,
+  eyeDestination = 1,
+  eyeRAF;
+function drawEye(p) {
+  eyeProgress = p;
+  eyeSlider.value = String(p);
+  document.querySelector("#eye-animation").innerHTML = eyePlan.frame(p);
+  document.querySelector("#eye-regions").innerHTML = regionPlan.frame(p, {
+    highlight: true,
+  });
+}
+eyeSlider.addEventListener("input", () => {
+  cancelAnimationFrame(eyeRAF);
+  drawEye(Number(eyeSlider.value));
+});
+document.querySelector("#eye-play").addEventListener("click", () => {
+  cancelAnimationFrame(eyeRAF);
+  const from = eyeProgress,
+    to = eyeDestination,
+    start = performance.now();
+  eyeDestination = to === 1 ? 0 : 1;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    drawEye(to);
+    return;
+  }
+  const tick = (now) => {
+    const t = Math.min(1, (now - start) / 1600);
+    drawEye(from + (to - from) * t * t * (3 - 2 * t));
+    if (t < 1) eyeRAF = requestAnimationFrame(tick);
+  };
+  eyeRAF = requestAnimationFrame(tick);
+});
+drawEye(0);
 setLanguage("zh");
 window.addEventListener("pagehide", (event) => {
+  cancelAnimationFrame(eyeRAF);
   cancelAnimationFrame(strokeRAF);
   if (!event.persisted) controller.destroy();
 });
