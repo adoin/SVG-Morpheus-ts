@@ -48,9 +48,9 @@
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "type-check": "tsc --noEmit",
-    "test": "pnpm build && node --test test/core.test.mjs test/lifecycle.test.mjs test/matching.test.mjs test/paint.test.mjs research/shared-boundaries.test.mjs && pnpm test:types",
+    "test": "pnpm build && node --test test/core.test.mjs test/lifecycle.test.mjs test/matching.test.mjs test/paint.test.mjs research/shared-boundaries.test.mjs research/shared-stroke.test.mjs && pnpm test:types",
     "test:types": "tsc --noEmit --strict --moduleResolution NodeNext --module NodeNext --target ES2020 --lib ES2020 --types node test/core-types.ts",
-    "test:research": "pnpm build && node --test research/shared-boundaries.test.mjs"
+    "test:research": "pnpm build && node --test research/shared-boundaries.test.mjs research/shared-stroke.test.mjs"
   },
   "engines": {
     "node": ">=18.0.0",

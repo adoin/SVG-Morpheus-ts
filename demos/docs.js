@@ -1,9 +1,20 @@
 import SVGMorpheus, { easings, springProgress } from "../src/index.ts";
 import { analyzeSharedBoundaries } from "../research/shared-boundaries.mjs";
 import { eyePair } from "../research/fixtures.mjs";
+import { createSharedStrokePlan } from "../research/shared-stroke.mjs";
 import pkg from "../package.json";
 
 const english = {
+  strokeTitle: "Keep AB, animate only BC",
+  strokeHint:
+    "Green shared geometry stays fixed while the blue difference retracts or extends along its original curve. Supports lines, curves and reversed paths. Open-stroke research only; filled regions and holes are not supported.",
+  strokeLine: "Line: B is not a source node",
+  strokeCurve: "Cubic curve: keep the first half",
+  strokeReverse: "Target drawn in reverse",
+  strokePlay: "Play / reverse",
+  strokeProgress: "Progress",
+  strokeLegend:
+    "Green: preserved AB. Blue: changing BC. Scrub to inspect individual frames. Playback takes 1.6 seconds.",
   language: "Language",
   start: "Get started",
   try: "Interactive example",
@@ -149,6 +160,18 @@ function renderResearch() {
 }
 function setLanguage(value) {
   language = value;
+  document
+    .querySelector("#stroke-case")
+    .setAttribute(
+      "aria-label",
+      language === "zh" ? "共边实验示例" : "Shared stroke example",
+    );
+  document
+    .querySelector("#stroke-preview")
+    .setAttribute(
+      "aria-label",
+      language === "zh" ? "公共描边动画" : "Shared stroke animation",
+    );
   document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
   document.title = `SVG Morpheus TS · ${language === "zh" ? "文档" : "Documentation"}`;
   document
@@ -198,7 +221,56 @@ document
   .querySelector("#language")
   .addEventListener("change", (event) => setLanguage(event.target.value));
 document.querySelector("#tolerance").addEventListener("input", renderResearch);
+const strokeCases = {
+  line: ["M2 12H30", "M2 12H16"],
+  curve: ["M2 20C2 0 30 0 30 20", "M2 20C2 10 9 5 16 5"],
+  reverse: ["M2 12H30", "M16 12H2"],
+};
+let strokePlan,
+  strokeRAF,
+  strokeProgress = 0,
+  strokeDestination = 1;
+const slider = document.querySelector("#stroke-progress");
+function drawStroke(value) {
+  strokeProgress = value;
+  slider.value = String(value);
+  const frame = strokePlan.frame(value);
+  document.querySelector("#stroke-preview").innerHTML =
+    `<path data-shared d="${frame.shared}" stroke="#15956b"/><path data-difference d="${frame.difference}" stroke="#3569ed"/>`;
+}
+function resetStroke() {
+  cancelAnimationFrame(strokeRAF);
+  strokePlan = createSharedStrokePlan(
+    ...strokeCases[document.querySelector("#stroke-case").value],
+  );
+  strokeDestination = 1;
+  drawStroke(0);
+}
+document.querySelector("#stroke-case").addEventListener("change", resetStroke);
+slider.addEventListener("input", () => {
+  cancelAnimationFrame(strokeRAF);
+  drawStroke(Number(slider.value));
+});
+document.querySelector("#stroke-play").addEventListener("click", () => {
+  cancelAnimationFrame(strokeRAF);
+  const from = strokeProgress,
+    to = strokeDestination,
+    start = performance.now();
+  strokeDestination = to === 1 ? 0 : 1;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    drawStroke(to);
+    return;
+  }
+  const tick = (now) => {
+    const t = Math.min(1, (now - start) / 1600);
+    drawStroke(from + (to - from) * (t * t * (3 - 2 * t)));
+    if (t < 1) strokeRAF = requestAnimationFrame(tick);
+  };
+  strokeRAF = requestAnimationFrame(tick);
+});
+resetStroke();
 setLanguage("zh");
 window.addEventListener("pagehide", (event) => {
+  cancelAnimationFrame(strokeRAF);
   if (!event.persisted) controller.destroy();
 });
