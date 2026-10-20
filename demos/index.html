@@ -295,9 +295,17 @@ const body = renderPaintFrame(paths, paint.frame(0.5), 'unique-icon-id')</code><
         <section id="research">
           <h2 data-i18n="eyeTitle">眼睛切换：固定共同区域</h2>
           <p data-i18n="eyeHint">
-            左侧是实际动画，右侧展示区域分工。共同区域保持原位，原图独有部分淡出，目标独有部分沿斜线方向显现。可反向播放或逐帧检查。
+            共同区域保持原位，消失片段各自向连接顶点收缩，全程保持实色；目标独有部分沿斜线方向显现。可切换旧的淡出方案对比，或拖动进度逐帧检查。
           </p>
           <div class="targets">
+            <select id="eye-motion" aria-label="差异动画方式">
+              <option value="retract" data-i18n="eyeRetract">
+                向连接顶点收回
+              </option>
+              <option value="fade" data-i18n="eyeFade">
+                淡出（旧方案对比）
+              </option>
+            </select>
             <button id="eye-play" data-i18n="strokePlay">播放 / 反向</button>
             <label
               ><span data-i18n="strokeProgress">动画进度</span
@@ -328,13 +336,12 @@ const body = renderPaintFrame(paths, paint.frame(0.5), 'unique-icon-id')</code><
                 aria-label="眼睛区域分解"
               ></svg>
               <figcaption data-i18n="eyeRegions">
-                绿色固定 · 橙色退去 · 蓝色显现
+                绿色固定 · 橙色收回 · 蓝色显现
               </figcaption>
             </figure>
           </div>
           <p class="note" data-i18n="eyeLimit">
-            实验使用 SVG
-            遮罩保留共同填充区域，差异部分采用淡出与方向揭示，不是轮廓几何变形。目前限定同色、不透明填充；尚未接入正式
+            实验通过采样拆分连通的差异片段，再将保留矢量边缘的片段向连接顶点缩小。这是几何收缩，还不是沿弧长逐段收回。限定同色、不透明填充；尚未接入正式
             core。
           </p>
           <h2 data-i18n="strokeTitle">保留 AB，只改变 BC</h2>

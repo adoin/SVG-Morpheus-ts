@@ -1,6 +1,7 @@
 /** Research renderer: set intersection/difference via SVG luminance masks.
  * Opaque, same-color filled paths only. No geometric contour correspondence.
  */
+import { findDifferenceComponents } from "./fill-components.mjs";
 export function createSharedFillPlan(
   from,
   to,
@@ -68,9 +69,26 @@ export function createSharedFillPlan(
     mask("not-target", rect + `<g fill="black">${b}</g>`) +
     mask("not-source", rect + `<g fill="black">${a}</g>`);
   const shared = `<g data-shared-fill mask="url(#${prefix}-intersection)">${a}</g>`;
+  const pieces = findDifferenceComponents(from, to, {
+    bounds,
+    direction,
+    fillRule,
+  });
+  const pieceDefs = pieces
+    .map(
+      (piece, i) =>
+        `<clipPath id="${prefix}-piece-${i}" clipPathUnits="userSpaceOnUse"><path d="${piece.clip}"/></clipPath>`,
+    )
+    .join("");
   return {
     shared,
-    frame(progress, { highlight = false } = {}) {
+    pieces: pieces.map(({ anchor, pixels }) => ({
+      anchor: [...anchor],
+      pixels,
+    })),
+    frame(progress, { highlight = false, motion = "retract" } = {}) {
+      if (!["retract", "fade"].includes(motion))
+        throw Error("Invalid difference motion");
       if (!Number.isFinite(progress)) throw Error("Invalid progress");
       const p = Math.max(0, Math.min(1, progress));
       if (!highlight && (p === 0 || p === 1))
@@ -84,7 +102,18 @@ export function createSharedFillPlan(
       ]
         .map(([s, t]) => `${u[0] * s + v[0] * t},${u[1] * s + v[1] * t}`)
         .join(" ");
-      return `<defs>${definitions}<clipPath id="${prefix}-reveal" clipPathUnits="userSpaceOnUse"><polygon points="${points}"/></clipPath></defs><g fill="${highlight ? "#15956b" : "currentColor"}">${shared}</g><g data-source-only fill="${highlight ? "#e29428" : "currentColor"}" opacity="${1 - p}" mask="url(#${prefix}-not-target)">${a}</g><g data-target-only fill="${highlight ? "#3569ed" : "currentColor"}" mask="url(#${prefix}-not-source)" clip-path="url(#${prefix}-reveal)">${b}</g>`;
+      const retract = pieces
+        .map((piece, i) => {
+          const [ax, ay] = piece.anchor,
+            s = 1 - p;
+          return `<g data-retract-piece="${i}" data-anchor="${ax},${ay}" transform="matrix(${s} 0 0 ${s} ${ax * p} ${ay * p})"><g clip-path="url(#${prefix}-piece-${i})"><g mask="url(#${prefix}-not-target)">${a}</g></g></g>`;
+        })
+        .join("");
+      const source =
+        motion === "retract"
+          ? `<g data-source-only fill="${highlight ? "#e29428" : "currentColor"}">${retract}</g>`
+          : `<g data-source-only fill="${highlight ? "#e29428" : "currentColor"}" opacity="${1 - p}" mask="url(#${prefix}-not-target)">${a}</g>`;
+      return `<defs>${definitions}${motion === "retract" ? pieceDefs : ""}<clipPath id="${prefix}-reveal" clipPathUnits="userSpaceOnUse"><polygon points="${points}"/></clipPath></defs><g fill="${highlight ? "#15956b" : "currentColor"}">${shared}</g>${source}<g data-target-only fill="${highlight ? "#3569ed" : "currentColor"}" mask="url(#${prefix}-not-source)" clip-path="url(#${prefix}-reveal)">${b}</g>`;
     },
   };
 }

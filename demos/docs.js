@@ -8,11 +8,13 @@ import pkg from "../package.json";
 const english = {
   eyeTitle: "Eye transition: keep the shared region fixed",
   eyeHint:
-    "Actual animation on the left, region breakdown on the right. Shared areas stay in place, source-only areas fade out, and target-only areas reveal diagonally. Play in reverse or scrub individual frames.",
+    "Shared areas stay fixed. Each disappearing piece contracts toward its own connection tip, with full opacity. Target-only areas reveal diagonally. Switch to the previous fade to compare, or scrub individual frames.",
   eyeActual: "Actual appearance",
-  eyeRegions: "Green stays · Orange fades · Blue reveals",
+  eyeRegions: "Green stays · Orange retracts · Blue reveals",
+  eyeRetract: "Contract toward connection tips",
+  eyeFade: "Fade (previous approach)",
   eyeLimit:
-    "Research uses SVG masks to retain the common filled region, with fading and directional reveal for differences. This is not geometric contour morphing. Opaque same-color fills only; not connected to the production core.",
+    "Research splits differences into sampled connected pieces, then scales each vector-masked piece toward a connection tip. This contracts geometry rather than fading it, but is not arc-length contour retraction. Opaque same-color fills only; not connected to production core.",
   strokeTitle: "Keep AB, animate only BC",
   strokeHint:
     "Green shared geometry stays fixed while the blue difference retracts or extends along its original curve. Supports lines, curves and reversed paths. Open-stroke research only; filled regions and holes are not supported.",
@@ -168,6 +170,12 @@ function renderResearch() {
 }
 function setLanguage(value) {
   language = value;
+  document
+    .querySelector("#eye-motion")
+    .setAttribute(
+      "aria-label",
+      language === "zh" ? "差异动画方式" : "Difference motion",
+    );
   for (const [id, zh, en] of [
     ["eye-animation", "眼睛共区动画", "Eye shared-region animation"],
     ["eye-regions", "眼睛区域分解", "Eye region breakdown"],
@@ -297,11 +305,19 @@ let eyeProgress = 0,
 function drawEye(p) {
   eyeProgress = p;
   eyeSlider.value = String(p);
-  document.querySelector("#eye-animation").innerHTML = eyePlan.frame(p);
+  const motion = document.querySelector("#eye-motion").value;
+  document.querySelector("#eye-animation").innerHTML = eyePlan.frame(p, {
+    motion,
+  });
   document.querySelector("#eye-regions").innerHTML = regionPlan.frame(p, {
     highlight: true,
+    motion,
   });
 }
+document.querySelector("#eye-motion").addEventListener("change", () => {
+  cancelAnimationFrame(eyeRAF);
+  drawEye(eyeProgress);
+});
 eyeSlider.addEventListener("input", () => {
   cancelAnimationFrame(eyeRAF);
   drawEye(Number(eyeSlider.value));
