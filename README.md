@@ -631,3 +631,9 @@ const plan = createPaintPlan(
 )
 const body = renderPaintFrame(['M0 0H24V24H0Z'], plan.frame(0.5), 'icon-unique-id')
 ```
+
+## Documentation and research
+
+The documentation site starts with installation and a minimal controller example, then covers the DOM-free core, paint interpolation and API. The previous Object/dynamic-loading demonstrations remain at `legacy.html`.
+
+`research/` contains an isolated shared-boundary detector and a visual lab. It measures approximately coincident curve fragments across different path layouts; it does not implement a new morph planner or change production animations. See [research findings](research/README.md). Run `pnpm test:research` for the experiment's regression tests.

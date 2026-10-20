@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SVG Morpheus TypeScript Demo - Object</title>
+  <link rel="icon" type="image/png" href="https://github.com/adoin.png?size=32">
+  <link rel="apple-touch-icon" href="https://github.com/adoin.png?size=180">
+  <link rel="stylesheet" href="demo.css" />
+  <!-- highlight.js CSS -->
+  <link rel="stylesheet" 
+        href="https://unpkg.com/@highlightjs/cdn-assets@11.9.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+  <div id="heading">
+    <div class="language-switcher">
+      <button class="lang-btn active" onclick="switchLanguage('en')">English</button>
+      <button class="lang-btn" onclick="switchLanguage('zh')">中文</button>
+    </div>
+    
+    <div class="project-links">
+      <a href="https://github.com/adoin/SVG-Morpheus-ts" 
+         target="_blank" 
+         class="project-source" 
+         data-i18n-title="project.github">
+        <img src="https://github.com/adoin.png?size=24" alt="GitHub Avatar" class="github-avatar">
+        <span data-i18n="project.github">GitHub Repository</span>
+      </a>
+      
+      <a href="https://github.com/alexk111/SVG-Morpheus" 
+         target="_blank" 
+         class="project-source" 
+         data-i18n-title="project.source">
+        <span class="icon">⚡</span>
+        <span data-i18n="project.basedOn">Based on SVG-Morpheus</span>
+      </a>
+    </div>
+    
+    <h1 data-i18n="title">SVG Morpheus TypeScript</h1>
+    <h2 data-i18n="subtitle">Demo: SVG placed via &lt;Object&gt;</h2>
+    <p data-i18n="description">Modern TypeScript + Vite + pnpm refactored version</p>
+  </div>
+
+  <!-- 原有示例：使用静态 iconset.svg -->
+  <div class="demo-section">
+    <h3 data-i18n="example1.title">Example 1: Using Static iconset.svg File</h3>
+    <div class="description">
+      <span data-i18n="example1.description">
+        📁 Traditional approach: Using pre-built iconset.svg files<br>
+        Suitable for scenarios with fixed icons that don't require dynamic loading
+      </span>
+    </div>
+    
+    <div class="demo-content">
+      <div class="demo-left">
+        <object type="image/svg+xml" id="icon"></object>
+        
+        <div class="options-container">
+          <div id="options">
+            <div class="option">
+              <label for="selIcon" data-i18n="label.icon">Icon:</label>
+              <select id="selIcon"></select>
+            </div>
+            <div class="option">
+              <label for="selEasing" data-i18n="label.easing">Easing:</label>
+              <select id="selEasing"></select>
+            </div>
+            <div class="option">
+              <label for="selDuration" data-i18n="label.duration">Duration:</label>
+              <select id="selDuration"></select>
+            </div>
+            <div class="option">
+              <label for="selRotation" data-i18n="label.rotation">Rotation:</label>
+              <select id="selRotation"></select>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="demo-right">
+        <div class="code-section">
+          <h4>
+            <span data-i18n="example1.codeTitle">💻 Example Code</span>
+            <button class="copy-btn" onclick="copyCode(this)" data-i18n="button.copy">
+              Copy Code
+            </button>
+          </h4>
+          <pre><code class="language-javascript" data-i18n-code="code.example1">// 1. 准备静态 iconset.svg 文件
+// iconset.svg 包含所有图标的 <g> 元素
+
+// 2. HTML 结构
+<object data="/iconset.svg" 
+        type="image/svg+xml" 
+        id="icon"></object>
+
+// 3. JavaScript 初始化
+import { SVGMorpheus } from 'svg-morpheus-ts';
+
+const morpheus = new SVGMorpheus('#icon', {
+  duration: 600,
+  easing: 'quad-in-out',
+  rotation: 'clock'
+});
+
+// 4. 切换到指定图标
+morpheus.to('icon-name');
+
+// 5. 带回调的动画
+morpheus.to('another-icon', {
+  duration: 1000
+}, () => {
+  console.log('动画完成!');
+});</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新示例：使用 bundleSvgs 动态生成 -->
+  <div class="demo-section">
+    <h3 data-i18n="example2.title">Example 2: Using bundleSvgs for Dynamic SVG Generation</h3>
+    <div class="description">
+      <span data-i18n="example2.description">
+        🚀 Modern approach: Runtime dynamic SVG icon merging with loading support<br>
+        Suitable for modern applications requiring dynamic icon addition and diverse icon sources<br>
+        ✨ <strong>New Feature</strong>: Support for custom SVG attributes (viewBox, class, data-* etc.)
+      </span>
+    </div>
+    
+    <div class="demo-content">
+      <div class="demo-left">
+        <div id="loadingIndicator">
+          <div class="loading-spinner"></div>
+          <span data-i18n="loading.text">Generating dynamic SVG...</span>
+        </div>
+        
+        <object id="iconDynamic" 
+                type="image/svg+xml" 
+                class="initially-hidden"></object>
+        
+        <div class="options-container initially-hidden" id="dynamicOptionsContainer">
+          <div id="optionsDynamic">
+            <div class="option">
+              <label for="selIconDynamic" data-i18n="label.icon">Icon:</label>
+              <select id="selIconDynamic"></select>
+            </div>
+            <div class="option">
+              <label for="selEasingDynamic" data-i18n="label.easing">Easing:</label>
+              <select id="selEasingDynamic"></select>
+            </div>
+            <div class="option">
+              <label for="selDurationDynamic" data-i18n="label.duration">Duration:</label>
+              <select id="selDurationDynamic"></select>
+            </div>
+            <div class="option">
+              <label for="selRotationDynamic" data-i18n="label.rotation">Rotation:</label>
+              <select id="selRotationDynamic"></select>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="demo-right">
+        <div class="code-section">
+          <h4>
+            <span data-i18n="example2.codeTitle">💻 Advanced Usage</span>
+            <button class="copy-btn" onclick="copyCode(this)" data-i18n="button.copy">
+              Copy Code
+            </button>
+          </h4>
+          <pre><code class="language-javascript" data-i18n-code="code.example2">// 1. 导入所需函数
+import { 
+  SVGMorpheus, 
+  bundleSvgs 
+} from 'svg-morpheus-ts';
+
+// 2. 定义 SVG 图标映射
+const svgMap = {
+  'circle': `<svg viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="8"/>
+  </svg>`,
+  'square': `<svg viewBox="0 0 24 24">
+    <rect x="4" y="4" width="16" height="16"/>
+  </svg>`,
+  'vite': '/vite.svg', // 文件路径
+};
+
+// 3. 自定义 SVG 属性 (可选)
+const customAttributes = {
+  viewBox: '0 0 24 24',
+  class: 'dynamic-iconset',
+  'data-version': '1.0'
+};
+
+// 4. 生成合并的 SVG Blob URL (一步完成)
+const bundledSvgUrl = await bundleSvgs(svgMap, customAttributes);
+
+// 5. 设置到 object 元素
+objectElement.data = bundledSvgUrl;
+
+// 6. 初始化 SVGMorpheus
+const morpheus = new SVGMorpheus('#iconDynamic');
+morpheus.to('circle');</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- highlight.js JavaScript -->
+  <script src="https://unpkg.com/@highlightjs/cdn-assets@11.9.0/highlight.min.js"></script>
+  <!-- 导入模块化JavaScript -->
+  <script type="module" src="./demo.js"></script>
+</body>
+</html>

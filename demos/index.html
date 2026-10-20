@@ -1,214 +1,375 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SVG Morpheus TypeScript Demo - Object</title>
-  <link rel="icon" type="image/png" href="https://github.com/adoin.png?size=32">
-  <link rel="apple-touch-icon" href="https://github.com/adoin.png?size=180">
-  <link rel="stylesheet" href="demo.css" />
-  <!-- highlight.js CSS -->
-  <link rel="stylesheet" 
-        href="https://unpkg.com/@highlightjs/cdn-assets@11.9.0/styles/atom-one-dark.min.css">
-</head>
-<body>
-  <div id="heading">
-    <div class="language-switcher">
-      <button class="lang-btn active" onclick="switchLanguage('en')">English</button>
-      <button class="lang-btn" onclick="switchLanguage('zh')">中文</button>
-    </div>
-    
-    <div class="project-links">
-      <a href="https://github.com/adoin/SVG-Morpheus-ts" 
-         target="_blank" 
-         class="project-source" 
-         data-i18n-title="project.github">
-        <img src="https://github.com/adoin.png?size=24" alt="GitHub Avatar" class="github-avatar">
-        <span data-i18n="project.github">GitHub Repository</span>
-      </a>
-      
-      <a href="https://github.com/alexk111/SVG-Morpheus" 
-         target="_blank" 
-         class="project-source" 
-         data-i18n-title="project.source">
-        <span class="icon">⚡</span>
-        <span data-i18n="project.basedOn">Based on SVG-Morpheus</span>
-      </a>
-    </div>
-    
-    <h1 data-i18n="title">SVG Morpheus TypeScript</h1>
-    <h2 data-i18n="subtitle">Demo: SVG placed via &lt;Object&gt;</h2>
-    <p data-i18n="description">Modern TypeScript + Vite + pnpm refactored version</p>
-  </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="SVG Morpheus TS — SVG icon animation, DOM-free core and boundary matching research."
+    />
+    <title>SVG Morpheus TS · 文档</title>
+    <link rel="stylesheet" href="./docs.css" />
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="#">SVG Morpheus TS <small data-version></small></a>
+      <div>
+        <a href="https://github.com/adoin/SVG-Morpheus-ts">GitHub</a
+        ><label
+          ><span data-i18n="language">语言</span
+          ><select id="language" aria-label="Language">
+            <option value="zh">中文</option>
+            <option value="en">English</option>
+          </select></label
+        >
+      </div>
+    </header>
+    <div class="layout">
+      <nav class="sidebar" aria-label="Documentation">
+        <a href="#quickstart" data-i18n="start">开始使用</a
+        ><a href="#playground" data-i18n="try">交互示例</a><a href="#api">API</a
+        ><a href="#core" data-i18n="core">无 DOM 内核</a
+        ><a href="#research" data-i18n="research">公共边界研究</a
+        ><a href="#support" data-i18n="support">支持范围</a
+        ><a href="./legacy.html" data-i18n="legacy">Object / 动态加载示例</a>
+      </nav>
+      <main>
+        <section id="quickstart">
+          <p class="eyebrow">SVG MORPHEUS TS</p>
+          <h1 data-i18n="headline">让 SVG 图标平滑变形</h1>
+          <p class="lead" data-i18n="summary">
+            把图标放在带 id 的 SVG 分组中，创建实例，再调用 to()
+            切换目标。支持浏览器控制器与可独立使用的纯函数内核。
+          </p>
+          <pre><code>npm install svg-morpheus-ts</code></pre>
+          <h2 data-i18n="minimal">最小用法</h2>
+          <p data-i18n="markupHint">
+            每个 g 是一个图标；id 是切换时使用的名称。
+          </p>
+          <pre><code>&lt;svg id="icons" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"&gt;
+  &lt;g id="menu"&gt;&lt;path d="M4 6H20M4 12H20M4 18H20" /&gt;&lt;/g&gt;
+  &lt;g id="close"&gt;&lt;path d="M6 6L18 18M18 6L6 18" /&gt;&lt;/g&gt;
+&lt;/svg&gt;</code></pre>
+          <pre><code>import SVGMorpheus from 'svg-morpheus-ts'
 
-  <!-- 原有示例：使用静态 iconset.svg -->
-  <div class="demo-section">
-    <h3 data-i18n="example1.title">Example 1: Using Static iconset.svg File</h3>
-    <div class="description">
-      <span data-i18n="example1.description">
-        📁 Traditional approach: Using pre-built iconset.svg files<br>
-        Suitable for scenarios with fixed icons that don't require dynamic loading
-      </span>
-    </div>
-    
-    <div class="demo-content">
-      <div class="demo-left">
-        <object type="image/svg+xml" id="icon"></object>
-        
-        <div class="options-container">
-          <div id="options">
-            <div class="option">
-              <label for="selIcon" data-i18n="label.icon">Icon:</label>
-              <select id="selIcon"></select>
-            </div>
-            <div class="option">
-              <label for="selEasing" data-i18n="label.easing">Easing:</label>
-              <select id="selEasing"></select>
-            </div>
-            <div class="option">
-              <label for="selDuration" data-i18n="label.duration">Duration:</label>
-              <select id="selDuration"></select>
-            </div>
-            <div class="option">
-              <label for="selRotation" data-i18n="label.rotation">Rotation:</label>
-              <select id="selRotation"></select>
+const icon = new SVGMorpheus('#icons', {
+  iconId: 'menu', duration: 750, rotation: 'none',
+})
+icon.to('close')
+// Cleanup: icon.destroy()</code></pre>
+        </section>
+        <section id="playground">
+          <h2 data-i18n="try">交互示例</h2>
+          <p data-i18n="tryHint">
+            点击目标名称切换图标。动画过程中也可以选择另一个目标。
+          </p>
+          <div class="controls">
+            <label
+              ><span data-i18n="duration">动画时长</span
+              ><select id="duration">
+                <option value="450">450 ms</option>
+                <option value="750" selected>750 ms</option>
+                <option value="1200">1200 ms</option>
+              </select></label
+            ><label
+              ><span data-i18n="motion">动画效果</span
+              ><select id="motion">
+                <option value="quad-in-out" data-i18n="smooth">平滑</option>
+                <option value="spring-snappy" selected data-i18n="snappy">
+                  轻微回弹
+                </option>
+                <option value="spring-bouncy" data-i18n="bouncy">
+                  明显回弹
+                </option>
+              </select></label
+            >
+          </div>
+          <div class="preview">
+            <svg
+              id="demo"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              role="img"
+              aria-label="SVG morph preview"
+            >
+              <g id="menu"><path d="M4 6H20M4 12H20M4 18H20" /></g>
+              <g id="close"><path d="M6 6L18 18M18 6L6 18" /></g>
+              <g id="check"><path d="M4 12L10 18L20 6" /></g>
+              <g id="warm">
+                <path fill="#ff7755" stroke="none" d="M3 3H15V15H3Z" />
+                <circle fill="#5577ee" stroke="none" cx="16" cy="16" r="5" />
+              </g>
+              <g id="cool">
+                <path fill="#33aa88" stroke="none" d="M3 3H15V15H3Z" />
+                <circle fill="#ffbb33" stroke="none" cx="16" cy="16" r="5" />
+              </g>
+              <g id="gradient">
+                <defs>
+                  <linearGradient id="demo-paint">
+                    <stop offset="0" stop-color="#5577ee" />
+                    <stop offset="1" stop-color="#ff7755" />
+                  </linearGradient>
+                </defs>
+                <circle
+                  fill="url(#demo-paint)"
+                  stroke="none"
+                  cx="12"
+                  cy="12"
+                  r="9"
+                />
+              </g>
+            </svg>
+            <div class="targets" role="group" aria-label="Target icon">
+              <button data-target="menu" aria-pressed="true" data-i18n="menu">
+                菜单</button
+              ><button
+                data-target="close"
+                aria-pressed="false"
+                data-i18n="close"
+              >
+                关闭</button
+              ><button
+                data-target="check"
+                aria-pressed="false"
+                data-i18n="check"
+              >
+                完成</button
+              ><button data-target="warm" aria-pressed="false" data-i18n="warm">
+                暖色图标</button
+              ><button data-target="cool" aria-pressed="false" data-i18n="cool">
+                冷色图标</button
+              ><button
+                data-target="gradient"
+                aria-pressed="false"
+                data-i18n="gradient"
+              >
+                渐变图标
+              </button>
             </div>
           </div>
-        </div>
-      </div>
-      
-      <div class="demo-right">
-        <div class="code-section">
-          <h4>
-            <span data-i18n="example1.codeTitle">💻 Example Code</span>
-            <button class="copy-btn" onclick="copyCode(this)" data-i18n="button.copy">
-              Copy Code
-            </button>
-          </h4>
-          <pre><code class="language-javascript" data-i18n-code="code.example1">// 1. 准备静态 iconset.svg 文件
-// iconset.svg 包含所有图标的 <g> 元素
-
-// 2. HTML 结构
-<object data="/iconset.svg" 
-        type="image/svg+xml" 
-        id="icon"></object>
-
-// 3. JavaScript 初始化
-import { SVGMorpheus } from 'svg-morpheus-ts';
-
-const morpheus = new SVGMorpheus('#icon', {
-  duration: 600,
-  easing: 'quad-in-out',
-  rotation: 'clock'
-});
-
-// 4. 切换到指定图标
-morpheus.to('icon-name');
-
-// 5. 带回调的动画
-morpheus.to('another-icon', {
-  duration: 1000
-}, () => {
-  console.log('动画完成!');
-});</code></pre>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 新示例：使用 bundleSvgs 动态生成 -->
-  <div class="demo-section">
-    <h3 data-i18n="example2.title">Example 2: Using bundleSvgs for Dynamic SVG Generation</h3>
-    <div class="description">
-      <span data-i18n="example2.description">
-        🚀 Modern approach: Runtime dynamic SVG icon merging with loading support<br>
-        Suitable for modern applications requiring dynamic icon addition and diverse icon sources<br>
-        ✨ <strong>New Feature</strong>: Support for custom SVG attributes (viewBox, class, data-* etc.)
-      </span>
-    </div>
-    
-    <div class="demo-content">
-      <div class="demo-left">
-        <div id="loadingIndicator">
-          <div class="loading-spinner"></div>
-          <span data-i18n="loading.text">Generating dynamic SVG...</span>
-        </div>
-        
-        <object id="iconDynamic" 
-                type="image/svg+xml" 
-                class="initially-hidden"></object>
-        
-        <div class="options-container initially-hidden" id="dynamicOptionsContainer">
-          <div id="optionsDynamic">
-            <div class="option">
-              <label for="selIconDynamic" data-i18n="label.icon">Icon:</label>
-              <select id="selIconDynamic"></select>
-            </div>
-            <div class="option">
-              <label for="selEasingDynamic" data-i18n="label.easing">Easing:</label>
-              <select id="selEasingDynamic"></select>
-            </div>
-            <div class="option">
-              <label for="selDurationDynamic" data-i18n="label.duration">Duration:</label>
-              <select id="selDurationDynamic"></select>
-            </div>
-            <div class="option">
-              <label for="selRotationDynamic" data-i18n="label.rotation">Rotation:</label>
-              <select id="selRotationDynamic"></select>
-            </div>
+          <p class="note" data-i18n="springHint">
+            演示通过 easings 注册 springProgress() 预设；控制器的 easing
+            参数始终使用名称。
+          </p>
+          <pre><code>import { easings, springProgress } from 'svg-morpheus-ts'
+easings['spring-snappy'] = t =&gt; springProgress(t, 'snappy')
+icon.to('close', { easing: 'spring-snappy', duration: 750 })</code></pre>
+        </section>
+        <section id="api">
+          <h2>API</h2>
+          <p data-i18n="apiHint">
+            构造器接收 SVG 元素、选择器或 object
+            元素。下面是常用配置与实例方法。
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="option">配置</th>
+                  <th data-i18n="default">默认值</th>
+                  <th data-i18n="meaning">含义</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>iconId</td>
+                  <td>—</td>
+                  <td data-i18n="initial">
+                    初始图标的分组 id；省略时显示最后一个分组。
+                  </td>
+                </tr>
+                <tr>
+                  <td>duration</td>
+                  <td>750</td>
+                  <td data-i18n="durationMeaning">毫秒；0 立即切换。</td>
+                </tr>
+                <tr>
+                  <td>easing</td>
+                  <td>quad-in-out</td>
+                  <td data-i18n="easingMeaning">
+                    缓动函数名称；可通过 easings 注册自定义函数。
+                  </td>
+                </tr>
+                <tr>
+                  <td>rotation</td>
+                  <td>clock</td>
+                  <td data-i18n="rotationMeaning">
+                    附加旋转：clock、counterclock、none、random。none
+                    不禁止形状自身的转向。
+                  </td>
+                </tr>
+                <tr>
+                  <td>reducedMotion</td>
+                  <td>user</td>
+                  <td data-i18n="reducedMeaning">
+                    user 遵循系统；always 总是跳过动画；never 始终播放。
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        </div>
-      </div>
-      
-      <div class="demo-right">
-        <div class="code-section">
-          <h4>
-            <span data-i18n="example2.codeTitle">💻 Advanced Usage</span>
-            <button class="copy-btn" onclick="copyCode(this)" data-i18n="button.copy">
-              Copy Code
-            </button>
-          </h4>
-          <pre><code class="language-javascript" data-i18n-code="code.example2">// 1. 导入所需函数
-import { 
-  SVGMorpheus, 
-  bundleSvgs 
-} from 'svg-morpheus-ts';
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                <tr>
+                  <th data-i18n="method">方法</th>
+                  <th data-i18n="meaning">含义</th>
+                </tr>
+                <tr>
+                  <td>to(id, options?, callback?)</td>
+                  <td data-i18n="toMeaning">
+                    变形到目标，单次 options 覆盖默认设置。
+                  </td>
+                </tr>
+                <tr>
+                  <td>set(id)</td>
+                  <td data-i18n="setMeaning">立即切换，不启动动画。</td>
+                </tr>
+                <tr>
+                  <td>cancel(finish = false)</td>
+                  <td data-i18n="cancelMeaning">
+                    停止在当前画面；finish=true 则完成到目标。
+                  </td>
+                </tr>
+                <tr>
+                  <td>addIcon(id, svg)</td>
+                  <td data-i18n="addMeaning">
+                    添加或替换图标，支持 SVG 字符串和元素。
+                  </td>
+                </tr>
+                <tr>
+                  <td>removeIcon(id)</td>
+                  <td data-i18n="removeMeaning">
+                    删除图标，返回是否找到该 id。
+                  </td>
+                </tr>
+                <tr>
+                  <td>getIconIds()</td>
+                  <td data-i18n="idsMeaning">获取当前图标名称。</td>
+                </tr>
+                <tr>
+                  <td>destroy()</td>
+                  <td data-i18n="destroyMeaning">
+                    停止动画、清理监听器；销毁后不可继续使用。
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+        <section id="core">
+          <h2 data-i18n="core">无 DOM 内核</h2>
+          <p data-i18n="coreHint">
+            Node、SSR 或自定义渲染器可使用 core
+            入口。调用方准备相同坐标系的路径并负责逐帧显示；内核不会访问
+            document。
+          </p>
+          <pre><code>import { createMorphPlan, springProgress } from 'svg-morpheus-ts/core'
 
-// 2. 定义 SVG 图标映射
-const svgMap = {
-  'circle': `<svg viewBox="0 0 24 24">
-    <circle cx="12" cy="12" r="8"/>
-  </svg>`,
-  'square': `<svg viewBox="0 0 24 24">
-    <rect x="4" y="4" width="16" height="16"/>
-  </svg>`,
-  'vite': '/vite.svg', // 文件路径
-};
-
-// 3. 自定义 SVG 属性 (可选)
-const customAttributes = {
-  viewBox: '0 0 24 24',
-  class: 'dynamic-iconset',
-  'data-version': '1.0'
-};
-
-// 4. 生成合并的 SVG Blob URL (一步完成)
-const bundledSvgUrl = await bundleSvgs(svgMap, customAttributes);
-
-// 5. 设置到 object 元素
-objectElement.data = bundledSvgUrl;
-
-// 6. 初始化 SVGMorpheus
-const morpheus = new SVGMorpheus('#iconDynamic');
-morpheus.to('circle');</code></pre>
-        </div>
-      </div>
+const plan = createMorphPlan(
+  [{ d: 'M4 6H20M4 12H20M4 18H20', allowReverse: true }],
+  [{ d: 'M6 6L18 18M18 6L6 18', allowReverse: true }],
+)
+const paths = plan.frame(springProgress(0.5, 'snappy'))</code></pre>
+          <h3 data-i18n="paint">颜色与渐变</h3>
+          <p data-i18n="paintHint">
+            createPaintPlan() 插值绘制属性，renderPaintFrame() 生成 SVG
+            内容。支持多色、透明度与线性/径向渐变；不兼容的渐变使用交叉过渡。groups
+            表示共同合成的透明度组，不能提前乘入每条路径。
+          </p>
+          <pre><code>import { createPaintPlan, renderPaintFrame } from 'svg-morpheus-ts/core'
+const paint = createPaintPlan(
+  [{ attributes: {}, fill: '#ff000080' }],
+  [{ attributes: {}, fill: '#0066ff' }],
+)
+const body = renderPaintFrame(paths, paint.frame(0.5), 'unique-icon-id')</code></pre>
+          <p class="note" data-i18n="contextPaint">
+            currentColor 和 CSS
+            变量保留给浏览器解析。需要数值颜色插值时，先由调用方解析成具体颜色。
+          </p>
+        </section>
+        <section id="research">
+          <p class="eyebrow" data-i18n="experimental">
+            独立研究 · 不进入正式动画
+          </p>
+          <h2 data-i18n="research">公共边界研究</h2>
+          <p data-i18n="researchHint">
+            这对眼睛图标没有相同的完整路径。实验按位置和切线方向查找近似重合的曲线片段，并用绿色高亮。
+          </p>
+          <label class="tolerance"
+            ><span data-i18n="tolerance">匹配容差（图标坐标单位）</span
+            ><input
+              id="tolerance"
+              type="range"
+              min="0.01"
+              max="0.2"
+              step="0.01"
+              value="0.05"
+            /><output id="tolerance-value">0.05</output></label
+          >
+          <div class="research-grid">
+            <figure>
+              <svg
+                id="research-from"
+                viewBox="0 0 32 32"
+                aria-label="Source eye"
+                role="img"
+              ></svg>
+              <figcaption data-i18n="source">原图</figcaption>
+            </figure>
+            <figure>
+              <svg
+                id="research-to"
+                viewBox="0 0 32 32"
+                aria-label="Target eye"
+                role="img"
+              ></svg>
+              <figcaption data-i18n="target">目标图</figcaption>
+            </figure>
+            <figure>
+              <svg
+                id="research-shared"
+                viewBox="0 0 32 32"
+                aria-label="Shared boundaries highlighted in green"
+                role="img"
+              ></svg>
+              <figcaption data-i18n="shared">绿色：检测到的公共边界</figcaption>
+            </figure>
+          </div>
+          <output id="coverage" aria-live="polite"></output>
+          <p class="note" data-i18n="researchLimit">
+            比例只表示采样边界长度覆盖，不是面积或语义相似度。尚未处理轮廓拆分、合并与孔洞的动画对应，不能直接把检测片段锁定后套入正式变形。
+          </p>
+          <p>
+            <a
+              href="https://github.com/adoin/SVG-Morpheus-ts/tree/master/research"
+              data-i18n="researchCode"
+              >研究源码与结论</a
+            >
+            · Carbon / IBM · <a href="./CARBON-LICENSE.txt">Apache-2.0</a>
+          </p>
+        </section>
+        <section id="support">
+          <h2 data-i18n="support">支持范围</h2>
+          <p data-i18n="supportHint">
+            支持
+            path、line、polyline、polygon、rect、circle、ellipse、嵌套分组与变换。蒙版、裁切和滤镜不受支持，传入前应移除或自行保留静态图形。导入模块可在
+            Node/SSR 执行，创建控制器需要浏览器。
+          </p>
+          <p>
+            <a href="./legacy.html" data-i18n="legacy">Object / 动态加载示例</a>
+            · <a href="https://github.com/adoin/SVG-Morpheus-ts">GitHub</a>
+          </p>
+        </section>
+        <footer>
+          SVG Morpheus TS · MIT · Based on SVG-Morpheus by Alex Kaul
+        </footer>
+      </main>
     </div>
-  </div>
-
-  <!-- highlight.js JavaScript -->
-  <script src="https://unpkg.com/@highlightjs/cdn-assets@11.9.0/highlight.min.js"></script>
-  <!-- 导入模块化JavaScript -->
-  <script type="module" src="./demo.js"></script>
-</body>
+    <script type="module" src="./docs.js"></script>
+  </body>
 </html>

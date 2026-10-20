@@ -49,7 +49,10 @@ export default defineConfig(({ mode }) => {
         },
       },
       rollupOptions: {
-        input: './demos/index.html',
+        input: {
+          index: resolve(__dirname, 'demos/index.html'),
+          legacy: resolve(__dirname, 'demos/legacy.html'),
+        },
         output: {
           format: 'es',
           entryFileNames: '[name]-[hash].js',

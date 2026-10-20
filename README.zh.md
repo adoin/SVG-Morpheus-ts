@@ -630,3 +630,9 @@ const plan = createPaintPlan(
 )
 const body = renderPaintFrame(['M0 0H24V24H0Z'], plan.frame(0.5), 'icon-unique-id')
 ```
+
+## 文档与研究
+
+文档页按安装、最小用法、交互示例、API、无 DOM 内核和公共边界研究组织；原有 Object 与动态加载示例保留在 legacy.html。
+
+`research/` 提供独立的跨路径共边检测与可视化实验，只统计近似重合的曲线片段，不实现新的正式变形算法。结论与局限见 [研究说明](research/README.md)，可运行 `pnpm test:research` 验证。
