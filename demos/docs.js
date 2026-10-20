@@ -7,6 +7,42 @@ import pkg from "../package.json";
 import { createIconGallery } from "./icon-gallery.mjs";
 
 const english = {
+  skip: "Skip to content",
+  tryGallery: "Open the icon playground",
+  readStart: "Start with a minimal example →",
+  featureMotion: "Change targets at any time",
+  featureMotionHint:
+    "Continue geometry and paint from the displayed frame when another target is selected.",
+  featurePaint: "Color and gradients move together",
+  featurePaintHint:
+    "Retain multicolor, alpha, compound holes and opacity-group compositing.",
+  featureCore: "Browser controller + independent core",
+  featureCoreHint:
+    "TypeScript, ESM/CJS, no runtime dependencies; the core works in Node/SSR.",
+  migration: "Upgrade to 2.0",
+  changelog: "Changelog",
+  migrationHint:
+    "The package name, DOM controller and core import paths are unchanged. Keep your to() calls and destroy() on cleanup. Try custom artwork in the playground before updating visual snapshots.",
+  migrationDraw:
+    "New or disappearing stroke-only contours draw/retract along their paths. Filled artwork does not use this rule.",
+  migrationPaint:
+    "Interrupted paint layers stay on one logical geometry path instead of multiplying geometry paths.",
+  migrationDefaults:
+    "Defaults remain 750ms, quad-in-out easing and clock spin. Use rotation: 'none' to disable extra spin.",
+  migrationCore:
+    "Custom core renderers can set draw: true on stroked MorphPath inputs. Centerline inference and locking shared filled regions are not automatic features.",
+  releaseStroke:
+    "Native stroked contours can draw and retract along their original paths.",
+  releaseInterrupt:
+    "Fixed path growth during repeated interruption, retaining current color and gradient continuity.",
+  releaseDots:
+    "Fixed round-capped disappearing strokes lingering as endpoint dots when switching to solid artwork.",
+  releaseDocs:
+    "Added a 43-icon, 17-pair playground and refreshed bilingual usage and upgrade guides.",
+  allReleases: "Read the full release history →",
+  researchScope: "EXPERIMENTAL · NOT INCLUDED IN THE NPM PACKAGE",
+  researchScopeHint:
+    "Shared-boundary and centerline prototypes are shown below. Use the controller or core API for applications. Authored centerlines do not imply automatic drawing inference for arbitrary filled SVG.",
   coreDraw:
     "Set draw: true on stroked paths to draw or retract unmatched contours along their original paths. Keep it off for filled artwork; matched contours still use geometry morphing.",
   gallery: "Icon playground",
@@ -356,7 +392,9 @@ document.querySelector("#eye-play").addEventListener("click", () => {
   eyeRAF = requestAnimationFrame(tick);
 });
 drawEye(0);
-setLanguage("zh");
+setLanguage(
+  new URLSearchParams(location.search).get("lang") === "en" ? "en" : "zh",
+);
 window.addEventListener("pagehide", (event) => {
   gallery.pause();
   cancelAnimationFrame(eyeRAF);

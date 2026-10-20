@@ -309,6 +309,34 @@ test("native stroke state changes retain shared geometry while the added slash d
   assert.ok(Math.abs(line.w - 9) < 0.01 && Math.abs(line.h - 9) < 0.01);
   m.destroy();
 });
+
+test("unlock to solid record fades balancing strokes instead of leaving opaque endpoint dots", () => {
+  const el = svg(
+      '<g id="a" fill="none" stroke="#43546e" stroke-width="1.8" stroke-linecap="round"><path d="M5 11H19V22H5Z"/><path d="M8 11V6A4 4 0 0 1 16 6"/><path d="M12 15V18"/></g><g id="b"><circle fill="#ef5b68" cx="12" cy="12" r="9"/></g>',
+    ),
+    m = make(el);
+  m.to("b", { easing: "linear" });
+  tick(0);
+  tick(95);
+  const balancing = [...el.querySelectorAll("path[data-morph-index]")].filter(
+    (p) => p.getAttribute("data-morph-index") !== "0",
+  );
+  assert.equal(balancing.length, 2);
+  for (const node of balancing) {
+    let alpha = Number(node.getAttribute("stroke-opacity") ?? 1);
+    for (let p = node; p && p !== el; p = p.parentElement)
+      alpha *= Number(p.getAttribute("opacity") ?? 1);
+    const stroke = node.getAttribute("stroke");
+    const colorAlpha = /rgba\([^,]+,[^,]+,[^,]+,([^\)]+)\)/.exec(
+      stroke ?? "",
+    )?.[1];
+    if (colorAlpha !== undefined) alpha *= Number(colorAlpha);
+    assert.ok(alpha < 0.01, `Residual stroke alpha ${alpha}`);
+  }
+  tick(100);
+  assert.equal(el.querySelectorAll("g path").length, 1);
+  m.destroy();
+});
 test("nested groups, transforms, inherited paint, polyline, holes and style survive", () => {
   const el = svg(
     '<g id="a" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><g transform="translate(2 3)"><polyline points="0,0 10,0 10,10"/></g></g><g id="b" fill="currentColor" fill-rule="evenodd"><path d="M0 0L20 0L20 20L0 20ZM5 5L5 15L15 15L15 5Z"/></g>',

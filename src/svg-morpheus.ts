@@ -402,15 +402,21 @@ export class SVGMorpheus {
           return { d: item.path, allowReverse: draw, draw };
         };
         const plan = createMorphPlan(from.map(path), to.map(path));
+        const emptyItem = (): IconItem => ({
+          path: "M0 0l0 0",
+          attrs: {
+            opacity: "0",
+            fill: "none",
+            stroke: "none",
+            "stroke-width": "0",
+          },
+          style: {},
+        });
         this._fromIconItems = plan.pairs.map((pair) =>
-          pair.fromIndex === null
-            ? { path: "M0 0l0 0", attrs: {}, style: {} }
-            : from[pair.fromIndex],
+          pair.fromIndex === null ? emptyItem() : from[pair.fromIndex],
         );
         this._toIconItems = plan.pairs.map((pair) =>
-          pair.toIndex === null
-            ? { path: "M0 0l0 0", attrs: {}, style: {} }
-            : to[pair.toIndex],
+          pair.toIndex === null ? emptyItem() : to[pair.toIndex],
         );
         this._plan = plan;
       }

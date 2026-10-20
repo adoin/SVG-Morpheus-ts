@@ -1,7 +1,7 @@
 {
   "name": "svg-morpheus-ts",
   "prettyName": "SVG Morpheus",
-  "version": "1.5.3",
+  "version": "2.0.0",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -19,10 +19,14 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "README.zh.md",
+    "CHANGELOG.md",
+    "LICENSE"
   ],
-  "description": "ESM TypeScript library enabling SVG icons to morph from one to the other. It implements Material Design's Delightful Details transitions. Refactored with modern TypeScript + Vite + pnpm stack. Supports both Chinese and English documentation.",
-  "homepage": "https://github.com/adoin/SVG-Morpheus-ts",
+  "description": "SVG icon morphing with matched cubic geometry, interruptible animations, multicolor and gradient interpolation, and a DOM-free TypeScript core.",
+  "homepage": "https://adoin.github.io/SVG-Morpheus-ts/",
   "repository": {
     "type": "git",
     "url": "https://github.com/adoin/SVG-Morpheus-ts.git"
@@ -48,7 +52,7 @@
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "type-check": "tsc --noEmit",
-    "test": "pnpm build && node --test test/core.test.mjs test/lifecycle.test.mjs test/matching.test.mjs test/paint.test.mjs research/shared-boundaries.test.mjs research/shared-stroke.test.mjs research/shared-fill.test.mjs research/icon-gallery.test.mjs && pnpm test:types",
+    "test": "pnpm build && node --test test/core.test.mjs test/lifecycle.test.mjs test/matching.test.mjs test/paint.test.mjs test/docs.test.mjs research/shared-boundaries.test.mjs research/shared-stroke.test.mjs research/shared-fill.test.mjs research/icon-gallery.test.mjs && pnpm test:types",
     "test:types": "tsc --noEmit --strict --moduleResolution NodeNext --module NodeNext --target ES2020 --lib ES2020 --types node test/core-types.ts",
     "test:research": "pnpm build && node --test research/shared-boundaries.test.mjs research/shared-stroke.test.mjs research/shared-fill.test.mjs research/icon-gallery.test.mjs"
   },

@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="SVG Morpheus TS — SVG icon animation, DOM-free core and boundary matching research."
+      content="SVG Morpheus TS 2.0 — interruptible SVG morphing, colors and gradients, TypeScript core and a 43-icon playground."
     />
     <title>SVG Morpheus TS · 文档</title>
     <link rel="stylesheet" href="./docs.css" />
   </head>
   <body>
+    <a class="skip-link" href="#quickstart" data-i18n="skip">跳到正文</a>
     <header>
       <a class="brand" href="#">SVG Morpheus TS <small data-version></small></a>
       <div>
@@ -30,20 +31,49 @@
         ><a href="#playground" data-i18n="try">交互示例</a
         ><a href="#icon-gallery" data-i18n="gallery">图标试验场</a
         ><a href="#api">API</a><a href="#core" data-i18n="core">无 DOM 内核</a
+        ><a href="#migration" data-i18n="migration">升级到 2.0</a
+        ><a href="#changelog" data-i18n="changelog">更新日志</a
         ><a href="#research" data-i18n="research">公共边界研究</a
         ><a href="#support" data-i18n="support">支持范围</a
         ><a href="./legacy.html" data-i18n="legacy">Object / 动态加载示例</a>
       </nav>
       <main>
         <section id="quickstart">
-          <p class="eyebrow">SVG MORPHEUS TS</p>
+          <p class="eyebrow">
+            SVG MORPHEUS TS <span class="release-badge">2.0</span>
+          </p>
           <h1 data-i18n="headline">让 SVG 图标平滑变形</h1>
           <p class="lead" data-i18n="summary">
             把图标放在带 id 的 SVG 分组中，创建实例，再调用 to()
             切换目标。支持浏览器控制器与可独立使用的纯函数内核。
           </p>
-          <pre><code>npm install svg-morpheus-ts</code></pre>
-          <h2 data-i18n="minimal">最小用法</h2>
+          <div class="hero-actions">
+            <a class="primary-link" href="#icon-gallery" data-i18n="tryGallery"
+              >打开图标试验场</a
+            ><a href="#minimal" data-i18n="readStart">从最小示例开始 →</a>
+          </div>
+          <div class="capabilities">
+            <div>
+              <strong data-i18n="featureMotion">随时改变目标</strong>
+              <p data-i18n="featureMotionHint">
+                连续点击时，从当前画面继续几何与颜色过渡。
+              </p>
+            </div>
+            <div>
+              <strong data-i18n="featurePaint">颜色与渐变一起变化</strong>
+              <p data-i18n="featurePaintHint">
+                保留多色、透明度、孔洞及绘制组的合成关系。
+              </p>
+            </div>
+            <div>
+              <strong data-i18n="featureCore">浏览器与独立 core</strong>
+              <p data-i18n="featureCoreHint">
+                TypeScript、ESM/CJS，无运行时依赖；core 支持 Node/SSR。
+              </p>
+            </div>
+          </div>
+          <pre><code>npm install svg-morpheus-ts@^2.0.0</code></pre>
+          <h2 id="minimal" data-i18n="minimal">最小用法</h2>
           <p data-i18n="markupHint">
             每个 g 是一个图标；id 是切换时使用的名称。
           </p>
@@ -373,7 +403,67 @@ const body = renderPaintFrame(paths, paint.frame(0.5), 'unique-icon-id')</code><
             变量保留给浏览器解析。需要数值颜色插值时，先由调用方解析成具体颜色。
           </p>
         </section>
+        <section id="migration">
+          <p class="eyebrow">VERSION 2.0</p>
+          <h2 data-i18n="migration">升级到 2.0</h2>
+          <p data-i18n="migrationHint">
+            包名、DOM 控制器与 core 导入入口不变。继续使用现有 to()
+            调用，并在组件卸载时
+            destroy()。先在试验场检查自定义图标，再更新视觉快照。
+          </p>
+          <ul>
+            <li data-i18n="migrationDraw">
+              纯描边新增或消失的轮廓会沿路径画出/收回，填充路径不启用此规则。
+            </li>
+            <li data-i18n="migrationPaint">
+              中断后的多绘制层保留在同一逻辑路径上，不再成倍累积几何路径。
+            </li>
+            <li data-i18n="migrationDefaults">
+              默认时长仍为 750ms，缓动为 quad-in-out，额外旋转为
+              clock；需要无额外旋转时设置 rotation: 'none'。
+            </li>
+          </ul>
+          <p class="note" data-i18n="migrationCore">
+            自定义 core 渲染器可对描边 MorphPath 设置 draw:
+            true。填充图标的中心线与共同区域锁定不属于自动能力。
+          </p>
+        </section>
+        <section id="changelog">
+          <h2 data-i18n="changelog">更新日志</h2>
+          <p class="release-date">
+            2.0.0 <time datetime="2026-10-20">2026-10-20</time>
+          </p>
+          <ul>
+            <li data-i18n="releaseStroke">
+              新增原生描边轮廓的按路径画出与收回。
+            </li>
+            <li data-i18n="releaseInterrupt">
+              修复连续中断导致绘制层扩增成几何路径的问题，保留当前颜色与渐变的衔接。
+            </li>
+            <li data-i18n="releaseDots">
+              修复描边切到填充图形时，消失的圆端点残留到动画末尾。
+            </li>
+            <li data-i18n="releaseDocs">
+              新增 43 个图标、17
+              组配对的自由试验场，更新中英文使用指南与升级说明。
+            </li>
+          </ul>
+          <a
+            href="https://github.com/adoin/SVG-Morpheus-ts/blob/master/CHANGELOG.md"
+            data-i18n="allReleases"
+            >查看完整版本记录 →</a
+          >
+        </section>
         <section id="research">
+          <div class="research-notice">
+            <strong data-i18n="researchScope"
+              >实验区 · 不包含在 npm 发布包中</strong
+            >
+            <p data-i18n="researchScopeHint">
+              下面展示共边与中心线的研究原型；正式使用请从控制器或 core API
+              开始。人工中心线不代表任意填充 SVG 都能自动按线条收回。
+            </p>
+          </div>
           <h2 data-i18n="eyeTitle">眼睛切换：固定共同区域</h2>
           <p data-i18n="eyeHint">
             消失的弧线沿自身中心线逐段收回，保持原来的半径、线宽和矢量边缘，共同区域不动。拖动进度可查看移动的线端，也可切换旧的缩小、淡出方案对比。

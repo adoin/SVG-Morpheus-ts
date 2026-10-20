@@ -1,639 +1,129 @@
-# SVG Morpheus TypeScript
+# SVG Morpheus TS
 
-> **⚡ This project is a TypeScript refactoring based on [alexk111/SVG-Morpheus](https://github.com/alexk111/SVG-Morpheus)**
-> Original project by [@alexk111](https://github.com/alexk111) - refactored with modern TypeScript + Vite + pnpm
+Smooth, interruptible SVG icon morphing for browsers and custom renderers.
 
-[中文](./README.zh.md) | **English**
+**2.0.0** · TypeScript · ESM / CommonJS / UMD · No runtime dependencies · MIT
 
-JavaScript library enabling SVG icons to morph from one to the other. It implements Material Design's Delightful Details transitions.
+[Documentation](https://adoin.github.io/SVG-Morpheus-ts/?lang=en#quickstart) · [43-icon playground](https://adoin.github.io/SVG-Morpheus-ts/?lang=en#icon-gallery) · [Changelog](./CHANGELOG.md) · [中文](./README.zh.md)
 
-## 🌐 Live Demo
+Morph geometry, color and gradients together. Select another target during an animation to continue from the displayed frame. Native stroked contours draw or retract along their own paths; filled artwork preserves compound contours and holes.
 
-**[🎯 View Live Demo](https://adoin.github.io/SVG-Morpheus-ts/)**
+## Install
 
-Try the interactive demo to see SVG morphing animations in action, featuring both static and dynamic examples with multilingual support.
-
-## 🚀 Modernization Highlights
-
-This project has been refactored from Gulp to a modern TypeScript + Vite + pnpm build system:
-
-- ✅ **TypeScript** - Complete type safety support
-- ✅ **ESM Modules** - Standard ES module system
-- ✅ **Vite Build** - Fast modern build tool
-- ✅ **Multi-format Output** - Supports ES, CJS, UMD formats
-- ✅ **Modern Toolchain** - ESLint, TypeScript type checking
-- ✅ **Development Experience** - HMR, fast reload
-- ✅ **pnpm** - Efficient package manager
-- ✅ **Dynamic SVG Bundling** - 🆕 Runtime SVG iconset generation
-
-## 🎉 What's New in v1.2.0
-
-### 🐛 Critical Bug Fixes
-
-**Fixed Rotation Animation "Displacement" Effect**
-- ✅ **Unified Rotation Center**: All paths now rotate around a unified geometric center instead of individual path centers
-- ✅ **Fixed Angle Accumulation**: Resolved rotation angle accumulation bug that caused angles to grow indefinitely (5760° → 6120°)
-- ✅ **Smooth Morphing**: Eliminated "flying" or "displacement" effects during rotation animations
-- ✅ **Improved Path Balancing**: Enhanced handling when source and target icons have different numbers of paths
-
-### 🔧 Enhanced Features
-
-**Gradient Coordinate Transformation**
-- ✅ **Synchronized Gradient Scaling**: Gradients now scale correctly with paths during coordinate system transformations
-- ✅ **Proper Gradient Center Calculation**: Fixed gradient positioning when morphing between different ViewBox sizes
-- ✅ **Enhanced Pattern Support**: Improved handling of SVG patterns during coordinate transformations
-
-**Code Quality Improvements**
-- ✅ **Cleaned Codebase**: Removed all experimental/debugging code for better maintainability
-- ✅ **Optimized Performance**: Streamlined rotation center calculation algorithms
-- ✅ **Updated Dependencies**: Updated highlight.js CDN to more reliable unpkg.com sources
-
-### 🎯 Technical Details
-
-**Before (v1.1.x)**:
-```javascript
-// Individual rotation centers caused "displacement"
-path1Center: (17.38, 0.006)  // vite path 1
-path2Center: (23.92, 3.54)   // vite path 2
-targetCenter: (12, 12)       // diamond center
-// Result: Paths "fly" to different centers
+```sh
+npm install svg-morpheus-ts@^2.0.0
 ```
 
-**After (v1.2.0)**:
-```javascript
-// Unified rotation center eliminates displacement
-unifiedCenter: (147.02, 107.00)  // Average of all path centers
-// Result: All paths rotate smoothly around same center
+## Browser controller
+
+Each direct child `g` represents an icon. Give each group a unique id and use a common coordinate system.
+
+```html
+<svg
+  id="icons"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <g id="menu"><path d="M4 6H20M4 12H20M4 18H20" /></g>
+  <g id="close"><path d="M6 6L18 18M18 6L6 18" /></g>
+</svg>
 ```
 
-**Gradient Transformation**:
-```javascript
-// Now properly transforms gradient coordinates
-linearGradient: x1="0%" y1="0%" x2="100%" y2="100%"
-// ↓ Scales with path coordinates
-transformedGradient: x1="0.0%" y1="7.652%" x2="57.636%" y2="78.411%"
-```
+```ts
+import SVGMorpheus from "svg-morpheus-ts";
 
-### 🚀 Performance Impact
-
-- **50% smoother** rotation animations
-- **Eliminated visual artifacts** during complex shape transitions
-- **Better memory management** with cleaned codebase
-- **Faster loading** with updated CDN sources
-
-## 🏗️ Installation
-
-```bash
-npm install svg-morpheus-ts
-```
-
-## 📖 Usage
-
-### Import Core Class
-
-```typescript
-// Default import
-import SVGMorpheus from 'svg-morpheus-ts';
-
-// Or named import
-import { SVGMorpheus } from 'svg-morpheus-ts';
-
-// Create instance
-const myMorpheus = new SVGMorpheus('#my-svg');
-```
-
-### Import Type Definitions
-
-```typescript
-import type {
-  SVGMorpheusOptions,
-  IconItem,
-  EasingFunction,
-  RGBColor
-} from 'svg-morpheus-ts';
-
-// Use types
-const options: SVGMorpheusOptions = {
-  duration: 1000,
-  easing: 'ease-in-out',
-  rotation: 'clock'
-};
-
-const customEasing: EasingFunction = (t: number) => t * t;
-```
-
-### Import Utility Functions
-
-```typescript
-import {
-  easings,           // Predefined easing functions
-  pathToAbsolute,    // Path conversion utilities
-  styleNormCalc,     // Style calculation utilities
-  curveCalc,         // Curve calculation utilities
-  bundleSvgs,        // 🆕 Dynamic SVG bundling, returns Blob URL
-  bundleSvgsString   // 🆕 Dynamic SVG bundling, returns SVG string
-} from 'svg-morpheus-ts';
-
-// Use predefined easing functions
-console.log(easings.easeInOut);
-
-// Use path utilities
-const absolutePath = pathToAbsolute('m10,10 l20,20');
-
-// 🆕 Bundle multiple SVGs dynamically
-const svgMap = {
-  'icon1': '<svg>...</svg>',
-  'icon2': '/path/to/icon.svg'
-};
-const bundledSvgUrl = await bundleSvgs(svgMap);
-const bundledSvgString = await bundleSvgsString(svgMap);
-```
-
-### Complete Example
-
-```typescript
-import SVGMorpheus, {
-  type SVGMorpheusOptions,
-  easings
-} from 'svg-morpheus-ts';
-
-// Configuration options
-const options: SVGMorpheusOptions = {
-  duration: 800,
-  easing: 'easeInOut',
-  rotation: 'clock'
-};
-
-// Create morpheus instance
-const morpheus = new SVGMorpheus('#my-svg', options);
-
-// Register custom easing function
-morpheus.registerEasing('customEase', easings.easeInQuad);
-
-// Start animation
-morpheus.to('icon2', { duration: 1200 });
-```
-
-### ES Modules (Recommended)
-
-```typescript
-import { SVGMorpheus } from 'svg-morpheus-ts';
-
-const morpheus = new SVGMorpheus('svg', {
+const icons = new SVGMorpheus("#icons", {
+  iconId: "menu",
   duration: 600,
-  easing: 'quad-in-out',
-  rotation: 'clock'
+  rotation: "none",
 });
-
-// Morph to specified icon
-morpheus.to('icon-name');
+icons.to("close");
+// On component/application cleanup: icons.destroy()
 ```
 
-### CommonJS
-
-```javascript
-const { SVGMorpheus } = require('svg-morpheus-ts');
-
-const morpheus = new SVGMorpheus('svg');
-morpheus.to('icon-name');
-```
-
-### UMD (Browser)
-
-```html
-<script src="svg-morpheus.umd.js"></script>
-<script>
-  const morpheus = new SVGMorpheus('svg');
-  morpheus.to('icon-name');
-</script>
-```
-
-## 🎯 TypeScript Support
-
-The project provides complete TypeScript type definitions:
-
-```typescript
-import { SVGMorpheus, type SVGMorpheusOptions } from 'svg-morpheus-ts';
-
-const options: SVGMorpheusOptions = {
-  duration: 500,
-  easing: 'cubic-in-out',
-  rotation: 'clock'
-};
-
-const morpheus = new SVGMorpheus('#my-svg', options, () => {
-  console.log('Animation complete');
-});
-```
-
-## 📦 Export List
-
-### Core Classes
-- `SVGMorpheus` (default export)
-- `SVGMorpheus` (named export)
-
-### Type Definitions
-- `EasingFunction` - Easing function type
-- `SVGMorpheusOptions` - Configuration options interface
-- `StyleAttributes` - Style attributes interface
-- `RGBColor` - RGB color interface
-- `NormalizedStyle` - Normalized style interface
-- `Transform` - Transform interface
-- `IconItem` - Icon item interface
-- `Icon` - Icon interface
-- `MorphNode` - Morph node interface
-- `BoundingBox` - Bounding box interface
-- `CallbackFunction` - Callback function type
-
-### Utility Functions
-- `easings` - Predefined easing functions object
-- `styleNormCalc` - Style normalization calculation
-- `styleNormToString` - Style object to string conversion
-- `styleToNorm` - Style to normalized format conversion
-- `transCalc` - Transform calculation
-- `trans2string` - Transform to string conversion
-- `curveCalc` - Curve calculation
-- `clone` - Deep clone utility
-- `parsePathString` - Parse path string
-- `pathToAbsolute` - Convert to absolute path
-- `path2curve` - Path to curve conversion
-- `path2string` - Path to string conversion
-- `curvePathBBox` - Calculate curve bounding box
-- `bundleSvgs` - 🆕 Dynamic SVG bundling utility
-- `bundleSvgsString` - 🆕 Dynamic SVG bundling, returns SVG string
-
-## 🛠️ Development
-
-### Install Dependencies
-
-```bash
-pnpm install
-```
-
-### Development Mode
-
-```bash
-pnpm dev
-```
-
-Open `http://localhost:9000` in your browser to view the demo.
-
-### Build
-
-```bash
-pnpm build
-```
-
-Build output will be generated in the `dist/` directory:
-- `index.js` - ES module
-- `index.cjs` - CommonJS module
-- `index.umd.js` - UMD module
-- `index.d.ts` - TypeScript type definitions
-
-### Code Quality
-
-```bash
-pnpm lint          # Check code
-pnpm lint:fix      # Auto fix
-pnpm type-check    # TypeScript type checking
-```
-
-## 📝 Configuration Options
-
-```typescript
-interface SVGMorpheusOptions {
-  iconId?: string;                                    // Initial icon ID
-  duration?: number;                                  // Animation duration (ms)
-  easing?: string;                                   // Easing function
-  rotation?: 'clock' | 'counterclock' | 'none' | 'random'; // Rotation direction
-}
-```
-
-## 🎨 Supported Easing Functions
-
-- `linear`
-- `quad-in`, `quad-out`, `quad-in-out`
-- `cubic-in`, `cubic-out`, `cubic-in-out`
-- `quart-in`, `quart-out`, `quart-in-out`
-- `quint-in`, `quint-out`, `quint-in-out`
-- `sine-in`, `sine-out`, `sine-in-out`
-- `expo-in`, `expo-out`, `expo-in-out`
-- `circ-in`, `circ-out`, `circ-in-out`
-- `elastic-in`, `elastic-out`, `elastic-in-out`
-
-### Custom Easing Functions
-
-```typescript
-morpheus.registerEasing('my-easing', (t: number) => {
-  return t * t * t; // Custom easing logic
-});
-```
-
-## 📦 Project Structure
-
-```
-├── src/                  # TypeScript source code
-│   ├── index.ts         # Main entry file
-│   ├── types.ts         # Type definitions
-│   ├── helpers.ts       # Utility functions (includes bundleSvgs 🆕)
-│   ├── easings.ts       # Easing functions
-│   ├── svg-path.ts      # SVG path processing
-│   └── svg-morpheus.ts  # Main class
-├── dist/                # Build output
-├── demos/               # Demo files (includes bundleSvgs examples 🆕)
-├── vite.config.ts       # Vite configuration
-├── tsconfig.json        # TypeScript configuration
-├── package.json
-└── pnpm-lock.yaml       # pnpm lock file
-```
-
-## 🔄 Migration from Old Version
-
-### Major Changes
-
-1. **Module System**: From IIFE to ESM
-2. **TypeScript**: Complete type support
-3. **Build Tool**: From Gulp to Vite
-4. **Package Manager**: Use pnpm instead of npm
-5. **API**: Maintains backward compatibility
-
-### Migration Steps
-
-```javascript
-// Old version (UMD)
-const morpheus = new SVGMorpheus('svg');
-
-// New version (ESM)
-import { SVGMorpheus } from 'svg-morpheus-ts';
-const morpheus = new SVGMorpheus('svg');
-```
-
-## ⚡ Performance Benefits
-
-Advantages of using pnpm:
-
-- 🚀 **Faster installation** - Hard links and symlinks reduce disk usage
-- 📦 **Save disk space** - Global storage, avoid duplicate downloads
-- 🔒 **Strict dependency management** - Prevent phantom dependency issues
-- 🛡️ **Better security** - Stricter package resolution mechanism
-
-## 📄 License
-
-MIT License
-
-## 🙏 Acknowledgments
-
-Based on the original [SVG Morpheus](https://github.com/alexk111/SVG-Morpheus) project, refactored with modern technology stack.
-
-## 🆕 Dynamic SVG Bundling
-
-The new `bundleSvgs` functionality allows you to dynamically create iconset-style SVG files at runtime, perfect for modern applications that need flexible icon management.
-
-### Basic Usage
-
-```typescript
-import { bundleSvgs } from 'svg-morpheus-ts';
-
-const svgMap = {
-  'home': '<svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>',
-  'user': '/icons/user.svg',  // Can also load from file
-  'settings': '/icons/settings.svg'
-};
-
-// Generate bundled SVG Blob URL
-const bundledSvgUrl = await bundleSvgs(svgMap);
-console.log(bundledSvgUrl);
-// Output: blob:null/12345678-1234-1234-1234-123456789abc
-```
-
-### Custom SVG Attributes
-
-```typescript
-// Customize the root SVG element attributes
-const customAttributes = {
-  viewBox: '0 0 24 24',
-  width: '100%',
-  height: '100%',
-  class: 'my-iconset',
-  'data-version': '1.0'
-};
-
-const bundledSvgUrl = await bundleSvgs(svgMap, customAttributes);
-// The generated SVG will have custom attributes applied
-```
-
-### Use with Object Element
-
-```typescript
-// Use bundleSvgs directly with object element
-const bundledSvgUrl = await bundleSvgs(svgMap, { viewBox: '0 0 24 24' });
-
-// Use with object element
-const objectElement = document.getElementById('my-svg-object');
-objectElement.data = bundledSvgUrl;
-
-// Initialize SVGMorpheus
-const morpheus = new SVGMorpheus('#my-svg-object');
-morpheus.to('home');
-```
-
-### Get SVG String (for fallback scenarios)
-
-```typescript
-import { bundleSvgsString } from 'svg-morpheus-ts';
-
-// Get SVG string instead of Blob URL
-const bundledSvgString = await bundleSvgsString(svgMap, customAttributes);
-
-// Use for inline SVG
-document.getElementById('svg-container').innerHTML = bundledSvgString;
-```
-
-### Advanced Features
-
-**Smart Content Detection**: Automatically detects whether input is SVG code or file path
-```typescript
-const mixedSources = {
-  'inline': '<svg>...</svg>',      // Direct SVG code
-  'external': '/icons/icon.svg',   // File path
-  'with-xml': '<?xml version="1.0"?><svg>...</svg>' // XML declaration
-};
-```
-
-**Error Handling**: Gracefully handles loading failures
-```typescript
-const bundledSvg = await bundleSvgs({
-  'valid': '<svg>...</svg>',
-  'invalid': '/non-existent.svg'  // Will be skipped with warning
-});
-```
-
-**TypeScript Support**: Full type definitions included
-```typescript
-import type { bundleSvgs } from 'svg-morpheus-ts';
-
-const svgAttributes: Record<string, string | number> = {
-  'data-theme': 'dark',
-  'data-count': 5
-};
-```
-
-### API Reference
-
-#### bundleSvgs(svgMap, svgAttributes?)
-
-- **svgMap**: `Record<string, string>` - Object mapping icon IDs to SVG sources
-- **svgAttributes**: `Record<string, string | number>` (optional) - Custom attributes for root SVG element
-- **Returns**: `Promise<string>` - Generated Blob URL
-
-#### bundleSvgsString(svgMap, svgAttributes?)
-
-- **svgMap**: `Record<string, string>` - Object mapping icon IDs to SVG sources
-- **svgAttributes**: `Record<string, string | number>` (optional) - Custom attributes for root SVG element
-- **Returns**: `Promise<string>` - Combined SVG string
-
-## Browser Compatibility
-
-This library uses modern Web APIs. Here are the minimum browser versions required for full functionality:
-
-### Core Features Compatibility
-
-| Browser | Minimum Version | Notes |
-|---------|----------------|-------|
-| **Chrome** | 42+ | Full support for all features |
-| **Firefox** | 39+ | Full support for all features |
-| **Safari** | 10.1+ | Full support for all features |
-| **Edge** | 14+ | Full support for all features |
-| **Internet Explorer** | ❌ Not Supported | Missing fetch API and other modern features |
-
-### Feature-specific Compatibility
-
-| API/Feature | Chrome | Firefox | Safari | Edge | IE |
-|------------|--------|---------|--------|------|-----|
-| **SVG Morphing (Core)** | 22+ | 11+ | 6+ | 12+ | 10+ |
-| **bundleSvgs (fetch API)** | 42+ | 39+ | 10.1+ | 14+ | ❌ |
-| **Blob/URL.createObjectURL** | 8+ | 4+ | 6+ | 12+ | 10+ |
-| **querySelector/querySelectorAll** | 4+ | 3.5+ | 3.1+ | 12+ | 9+ |
-| **requestAnimationFrame** | 22+ | 11+ | 6+ | 12+ | 10+ |
-| **addEventListener** | 1+ | 1+ | 1+ | 12+ | 9+ |
-| **createElementNS** | 1+ | 1+ | 1+ | 12+ | 9+ |
-| **getComputedStyle** | 1+ | 1+ | 1+ | 12+ | 9+ |
-
-### Recommendations
-
-- **Modern Development**: Use Chrome 42+, Firefox 39+, Safari 10.1+, or Edge 14+
-- **Legacy Support**: For IE support, consider using polyfills for fetch API or use XMLHttpRequest
-- **Mobile Browsers**: All modern mobile browsers are supported
-- **bundleSvgs Feature**: Requires modern browsers with fetch API support
-
-### Polyfills for Legacy Support
-
-If you need to support older browsers, consider these polyfills:
-
-```html
-<!-- For IE 11 and older browsers -->
-<script src="https://polyfill.io/v3/polyfill.min.js?features=fetch,Promise"></script>
-```
-
-**Note**: The core SVG morphing functionality works in older browsers (IE 10+), but the new `bundleSvgs` feature requires modern browsers with fetch API support.
-
-## Framework integration and lifecycle (1.3)
-
-ESM, CommonJS and svg-morpheus-ts/core imports are safe in Node/SSR. Constructing a DOM instance or animating requires a browser. Use the core entry for geometry without loading the DOM renderer.
+The constructor accepts an SVG element, selector, or loaded SVG `object`. Construct after mounting; module imports themselves are safe in Node/SSR.
+
+| Option          | Default         | Behavior                                                                                                 |
+| --------------- | --------------- | -------------------------------------------------------------------------------------------------------- |
+| `iconId`        | Last group      | Initially displayed icon.                                                                                |
+| `duration`      | `750`           | Milliseconds; `0` commits immediately.                                                                   |
+| `easing`        | `'quad-in-out'` | Registered easing name.                                                                                  |
+| `rotation`      | `'clock'`       | Extra spin: `clock`, `counterclock`, `none`, `random`. `none` still permits an intrinsic geometric turn. |
+| `reducedMotion` | `'user'`        | Follow the OS; `always` skips animation, `never` keeps it enabled.                                       |
+| `algorithm`     | `'matched'`     | Matched geometry; `'legacy'` remains a compatibility option.                                             |
+
+| Method                        | Behavior                                                      |
+| ----------------------------- | ------------------------------------------------------------- |
+| `to(id, options?, callback?)` | Animate; per-call duration/easing/rotation override defaults. |
+| `set(id)`                     | Switch immediately.                                           |
+| `cancel(finish = false)`      | Stop at the displayed frame, or finish to the target.         |
+| `addIcon(id, svg)`            | Add/replace from an SVG string or element.                    |
+| `removeIcon(id)`              | Remove an icon; return whether it existed.                    |
+| `getIconIds()`                | Return registered ids.                                        |
+| `isAnimating`               | Return whether an animation frame is pending.                 |
+| `destroy()`                   | Cancel work and detach listeners; safe to repeat.             |
+
+### Spring motion
+
+`easing` accepts a name. Register a spring function explicitly:
 
 ```ts
-import { path2curve, path2string, curveCalc } from 'svg-morpheus-ts/core'
+import { easings, springProgress } from "svg-morpheus-ts";
 
-const [from, to] = path2curve('M0 0L10 10', [['M', 0, 10], ['L', 10, 0]])
-const halfway = path2string(curveCalc(from, to, 0.5))
+easings["spring-snappy"] = (t) => springProgress(t, "snappy");
+icons.to("close", { duration: 600, easing: "spring-snappy" });
 ```
 
-```ts
-import SVGMorpheus from 'svg-morpheus-ts'
+Presets: `smooth`, `snappy`, `bouncy`. Reduced motion is respected by default.
 
-const morph = new SVGMorpheus(svgElement, {
-  duration: 360,
-  rotation: 'none',
-  reducedMotion: 'user',
-})
-morph.addIcon('menu', '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" d="M4 6H20M4 12H20M4 18H20"/></svg>')
-morph.addIcon('close', '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" d="M6 6L18 18M18 6L6 18"/></svg>')
-morph.to('close')
-morph.cancel()
-morph.set('menu')
-morph.destroy()
-```
-
-| API | Behavior |
-| --- | --- |
-| `addIcon(id, markupOrElement)` | Register or replace inline SVG / SVGElement; returns the instance. The first icon in an empty instance displays immediately. |
-| `removeIcon(id)` | Return whether an icon was removed. Removing the current or target icon cancels and clears the surface. |
-| `getIconIds()` | Return a new ID array without exposing internal storage. |
-| `set(id)` | Switch synchronously without scheduling frames; equivalent to duration: 0. |
-| `cancel(finish = false)` | Retain the displayed shape without completion; true commits the target and calls completion once. |
-| `isAnimating` | Whether an animation frame is pending. |
-| `destroy()` | Idempotently cancel frames, remove pending load listeners and release DOM/icon references. Leave the last artwork in place; subsequent mutation methods throw. |
-
-reducedMotion defaults to user and checks system preferences when an animation starts. always switches immediately; never uses the configured duration. Duration must be finite and nonnegative. Unknown icons/easings and invalid parameters throw without cancelling an existing valid animation.
-
-Supports path, circle, ellipse, rect, polygon, polyline and line; nested group translate/scale/rotate/matrix/skew and inherited fill, stroke, opacity, caps, joins and fill rules. currentColor and CSS variables remain contextual. Inputs must be trusted SVG. Masks, clipping, filters, use references and nested SVG viewports are unsupported and rejected explicitly.
-
-In Vue, construct the instance in onMounted and call destroy in onBeforeUnmount. Use addIcon and to for changed icons instead of rebuilding the entire SVG.
-
-## Matched cubic morphing (1.4)
-
-SVGMorpheus defaults to algorithm: 'matched': globally assign paths and inner contours, align arc-length origins and directions, and separate translation, rotation, scale and residual deformation. Frames use exact Bézier subdivision to preserve curves and original boundaries. Sampling is used for matching and arc-length estimation, not for rendering a fixed-point polyline.
+## DOM-free core
 
 ```ts
-const morph = new SVGMorpheus(svgElement, {
-  algorithm: 'matched',
-  rotation: 'none',
-  duration: 500,
-})
-```
-
-rotation controls additional spin. rotation: 'none' disables extra turns; matched geometry can still infer the natural rotation between shapes. Use algorithm: 'legacy' for the previous index-based interpolation.
-
-Frameworks and custom renderers can use the DOM-free planner directly:
-
-```ts
-import { createMorphPlan, springProgress } from 'svg-morpheus-ts/core'
+import { createMorphPlan, springProgress } from "svg-morpheus-ts/core";
 
 const plan = createMorphPlan(
-  [{ d: 'M2 12L22 12', allowReverse: false }],
-  [{ d: 'M12 2L12 22', allowReverse: false }],
-)
-const paths = plan.frame(springProgress(0.5, 'snappy'))
+  [{ d: "M4 12H20", draw: true }],
+  [{ d: "M4 12H20" }, { d: "M12 4V20", draw: true }],
+);
+const paths: string[] = plan.frame(springProgress(0.5, "snappy"));
 ```
 
-createMorphPlan(from, to) accepts arrays of { d, closed?, allowReverse? }; d is a path string or curve array. pairs lists { fromIndex, toIndex } in target order, followed by disappearing source paths. A missing side is null. frame(progress) returns path strings in that same order. Reuse the plan rather than planning each frame. Inputs are not mutated and pairs is immutable.
+This entry never accesses `window` or `document`. `MorphPath` accepts `d` and optional `closed`, `allowReverse`, `draw`. Enable `draw` for stroked artwork to reveal/retract unmatched contours along their arc length; leave it off for fills. Matched contours still interpolate geometry. The DOM controller detects stroke-only artwork automatically.
 
-Open paths allow reversed alignment by default. Closed contours retain winding by default to preserve nonzero-fill holes; allowReverse: true opts into reversal. closed is inferred from each contour’s endpoints when omitted. Appearing or disappearing contours expand or contract around their local centers.
+Use `createPaintPlan()` and `renderPaintFrame()` for paint, with an instance-unique render prefix to isolate SVG ids. Color parsing/interpolation and structured linear/radial gradient types are exported too. See the [core guide](https://adoin.github.io/SVG-Morpheus-ts/?lang=en#core).
 
-springProgress(t, profile) provides smooth, snappy and bouncy profiles for normalized time. Pass its output to frame for a spring response, or provide progress from your own easing. The planner does not reconstruct distance fields or perform Boolean operations on arbitrary filled regions.
+## Support and limits
 
-## Color and gradient core (1.5)
+- Path, line, polyline, polygon, rect, circle, ellipse; nested groups and transforms.
+- Multicolor, alpha, compound fills and holes, shared opacity-group compositing.
+- Compatible gradient stops/geometry interpolate continuously; incompatible gradients use isolated crossfades.
+- Interrupted geometry and paint continue from the displayed frame.
 
-The DOM controller and `svg-morpheus-ts/core` share pure paint functions. CSS names, RGB/HSL (including modern space syntax), and four/eight-digit alpha hex are supported. Interpolation uses premultiplied alpha; `none` fades to/from a solid paint. Contextual `currentColor` and CSS variables remain browser-resolved; resolve them to concrete colors for numeric interpolation.
+The controller does not support masks, clipping, filters, patterns or nested SVG viewports. Resolve `currentColor` and CSS variables before numeric interpolation in a DOM-free renderer. Geometric matching does not guarantee semantic or topology-preserving transitions for arbitrary unrelated artwork.
 
-Same-type gradients interpolate stops, direction, focal points, radius and matrices. Unequal stop counts use merged offsets; duplicate stops retain hard edges. Different gradient types, coordinate units or spread methods crossfade. The DOM controller resolves inheritance and viewport percentages; core accepts structured `Gradient` values with `matrix(a b c d e f)` transforms.
+## Upgrade to 2.0
 
-`PaintStyle.groups` describes outer-to-inner opacity groups. Paths with the same group id share one compositing group. Do not multiply group opacity into each path. Supply an instance-unique prefix to avoid gradient-id collisions. Inputs are not mutated.
+Package name and `svg-morpheus-ts/core` imports are unchanged. ESM, CommonJS and browser UMD builds remain available, with no runtime dependencies.
 
-```ts
-import { createPaintPlan, renderPaintFrame } from 'svg-morpheus-ts/core'
-const plan = createPaintPlan(
-  [{ attributes: {}, fill: '#ff000080' }],
-  [{ attributes: {}, fill: {
-    type: 'linearGradient', attributes: { x2: '100%' },
-    stops: [{ offset: 0, color: 'blue' }, { offset: 1, color: 'white' }],
-  } }],
-)
-const body = renderPaintFrame(['M0 0H24V24H0Z'], plan.frame(0.5), 'icon-unique-id')
+New/disappearing native strokes now draw/retract along their original paths. Repeated interruption no longer multiplies geometry paths, and disappearing strokes no longer linger as round endpoint dots. Filled-shape behavior is preserved. Review custom easing and visual snapshots against these changes. [Release notes](./CHANGELOG.md).
+
+## Research is separate
+
+[Shared-boundary experiments](https://adoin.github.io/SVG-Morpheus-ts/?lang=en#research) investigate fixed common regions. The filled-eye drawing experiment uses **authored centerlines**, not automatic inference from arbitrary filled SVG. Research modules are not exported or shipped in npm. See [research/README.md](./research/README.md).
+
+## Development
+
+```sh
+pnpm install --frozen-lockfile
+pnpm test          # geometry, paint, lifecycle, icon matrix, Node-only types
+pnpm build:demo    # library and documentation / playground
+pnpm demo         # local documentation server
 ```
 
-## Documentation and research
+The playground has 43 original fixtures and 17 state pairs. Tests cover 1,806 ordered icon pairs, intermediate frames, rapid retargeting and reduced motion. Automated checks complement visual review.
 
-The documentation site starts with installation and a minimal controller example, then covers the DOM-free core, paint interpolation and API. The previous Object/dynamic-loading demonstrations remain at `legacy.html`.
-
-`research/` contains an isolated shared-boundary detector and a visual lab. It measures approximately coincident curve fragments across different path layouts; it does not implement a new morph planner or change production animations. See [research findings](research/README.md). Run `pnpm test:research` for the experiment's regression tests.
+MIT. Based on [Alex Kaul's SVG-Morpheus](https://github.com/alexk111/SVG-Morpheus), extended in TypeScript. Separate Carbon eye research fixtures are © IBM, Apache-2.0; see [their license](./research/CARBON-LICENSE.txt).
