@@ -9,6 +9,8 @@ export interface MorphPath {
   closed?: boolean;
   /** Closed filled contours preserve winding unless explicitly enabled. */
   allowReverse?: boolean;
+  /** Reveal/retract an unmatched stroked contour along its existing arc length. */
+  draw?: boolean;
 }
 export interface MorphPair {
   fromIndex: number | null;
@@ -361,6 +363,23 @@ function subcurve(c: Contour, a: number, b: number): Cubic {
   const [index] = locate(c, (a + b) / 2);
   return cut(c.curves[index], locate(c, a, index)[1], locate(c, b, index)[1]);
 }
+function drawnContour(c: Contour, amount: number): string {
+  const p = Math.max(0, Math.min(1, amount)),
+    first = c.curves[0][0];
+  const output: CurveData = [["M", ...first]];
+  if (p <= 0) output.push(["C", ...first, ...first, ...first]);
+  else
+    for (let i = 0; i < c.curves.length; i++) {
+      if (c.knots[i] >= p) break;
+      const curve =
+        p >= c.knots[i + 1]
+          ? c.curves[i]
+          : cut(c.curves[i], 0, locate(c, p, i)[1]);
+      output.push(["C", ...curve[1], ...curve[2], ...curve[3]]);
+      if (p < c.knots[i + 1]) break;
+    }
+  return path2string(output) + (p === 1 && c.closed ? "Z" : "");
+}
 function contourPlan(a: Contour, original: Contour, allowReverse: boolean) {
   const source = sample(a),
     count = source.length;
@@ -470,6 +489,15 @@ export function createMorphPlan(
       a.map((c) => feature([c])),
       b.map((c) => feature([c])),
     ).map(({ fromIndex, toIndex }) => {
+      const draw =
+        fromIndex === null
+          ? pair.toIndex !== null && to[pair.toIndex].draw
+          : pair.fromIndex !== null && from[pair.fromIndex].draw;
+      if (draw && (fromIndex === null || toIndex === null)) {
+        const contour = fromIndex === null ? b[toIndex!] : a[fromIndex];
+        return (progress: number) =>
+          drawnContour(contour, fromIndex === null ? progress : 1 - progress);
+      }
       const start = fromIndex === null ? collapse(b[toIndex!]) : a[fromIndex];
       const end = toIndex === null ? collapse(start) : b[toIndex];
       return contourPlan(start, end, option.allowReverse ?? !end.closed);

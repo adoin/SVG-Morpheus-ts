@@ -1,6 +1,11 @@
 import { createMorphPlan } from "./morph-plan";
 import type { MorphPlan } from "./morph-plan";
-import { createPaintPlan, renderPaintFrame, transformPaint } from "./paint";
+import {
+  createPaintPlan,
+  renderPaintFrame,
+  transformPaint,
+  compactPaintLayers,
+} from "./paint";
 import type { PaintStyle, PaintLayer } from "./paint";
 import { readIcon, parseTransform, transformCurve } from "./read-icon";
 import {
@@ -310,33 +315,30 @@ export class SVGMorpheus {
             item.style,
             fromOldToNewIdMap,
           );
+          const paintMatrix = [
+            fromTransformMatrix.scaleX,
+            0,
+            0,
+            fromTransformMatrix.scaleY,
+            fromTransformMatrix.translateX,
+            fromTransformMatrix.translateY,
+          ];
+          const transformStyle = (style: PaintStyle): PaintStyle => ({
+            ...style,
+            fill: transformPaint(style.fill, paintMatrix),
+            stroke: transformPaint(style.stroke, paintMatrix),
+            layers: style.layers?.map((layer) => ({
+              ...layer,
+              style: transformStyle(layer.style),
+            })),
+          });
 
           return {
             ...item,
             path: transformedPath,
             attrs: updatedAttrsRefs.attrs,
             style: updatedStyleRefs.attrs,
-            paint: item.paint
-              ? {
-                  ...item.paint,
-                  fill: transformPaint(item.paint.fill, [
-                    fromTransformMatrix.scaleX,
-                    0,
-                    0,
-                    fromTransformMatrix.scaleY,
-                    fromTransformMatrix.translateX,
-                    fromTransformMatrix.translateY,
-                  ]),
-                  stroke: transformPaint(item.paint.stroke, [
-                    fromTransformMatrix.scaleX,
-                    0,
-                    0,
-                    fromTransformMatrix.scaleY,
-                    fromTransformMatrix.translateX,
-                    fromTransformMatrix.translateY,
-                  ]),
-                }
-              : undefined,
+            paint: item.paint ? transformStyle(item.paint) : undefined,
           };
         });
       }
@@ -388,10 +390,17 @@ export class SVGMorpheus {
       ) {
         const from = this._fromIconItems,
           to = this._toIconItems;
-        const path = (item: IconItem) => ({
-          d: item.path,
-          allowReverse: (item.attrs.fill ?? item.style.fill) === "none",
-        });
+        const path = (item: IconItem) => {
+          const stroked = (paint: PaintStyle | undefined): boolean =>
+            paint?.layers
+              ? paint.layers.every((layer) => stroked(layer.style))
+              : (paint?.fill ??
+                  paint?.attributes.fill ??
+                  item.attrs.fill ??
+                  item.style.fill) === "none";
+          const draw = stroked(item.paint);
+          return { d: item.path, allowReverse: draw, draw };
+        };
         const plan = createMorphPlan(from.map(path), to.map(path));
         this._fromIconItems = plan.pairs.map((pair) =>
           pair.fromIndex === null
@@ -834,13 +843,16 @@ export class SVGMorpheus {
           this._morphNodes[i].node.removeAttribute("transform");
         }
       }
-      // Snapshot actual compositing layers, including an interrupted gradient crossfade.
-      if (this._morphG?.querySelector("path") && this._paintFrame) {
-        const snapshot = readIcon("__displayed", this._morphG, this._svgDoc!);
-        this._curIconItems = snapshot.items;
-        this._morphNodes = [...this._morphG.querySelectorAll("path")].map(
-          (node, i) => ({ node, fromIconItemIdx: i, toIconItemIdx: i }),
-        );
+      // Multiple paint layers share one geometry. Reading rendered paths back as separate
+      // geometry doubled the path count on every interrupted crossfade.
+      if (this._paintFrame) {
+        this._curIconItems.forEach((item, i) => {
+          const layers = compactPaintLayers(this._paintFrame![i] ?? []);
+          item.paint =
+            layers.length === 1 && Math.abs(layers[0].weight - 1) < 1e-12
+              ? layers[0].style
+              : { attributes: {}, layers };
+        });
       }
       this._toIconId = "";
     }

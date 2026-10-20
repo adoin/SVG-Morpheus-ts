@@ -27,8 +27,9 @@
     <div class="layout">
       <nav class="sidebar" aria-label="Documentation">
         <a href="#quickstart" data-i18n="start">开始使用</a
-        ><a href="#playground" data-i18n="try">交互示例</a><a href="#api">API</a
-        ><a href="#core" data-i18n="core">无 DOM 内核</a
+        ><a href="#playground" data-i18n="try">交互示例</a
+        ><a href="#icon-gallery" data-i18n="gallery">图标试验场</a
+        ><a href="#api">API</a><a href="#core" data-i18n="core">无 DOM 内核</a
         ><a href="#research" data-i18n="research">公共边界研究</a
         ><a href="#support" data-i18n="support">支持范围</a
         ><a href="./legacy.html" data-i18n="legacy">Object / 动态加载示例</a>
@@ -159,6 +160,82 @@ icon.to('close')
 easings['spring-snappy'] = t =&gt; springProgress(t, 'snappy')
 icon.to('close', { easing: 'spring-snappy', duration: 750 })</code></pre>
         </section>
+        <section id="icon-gallery">
+          <h2 data-i18n="gallery">图标试验场</h2>
+          <p data-i18n="galleryHint">
+            任意点击下面的图标，可以跨分类切换，也可以在动画中途继续点击。使用同一个预览实例从当前画面衔接到新目标。
+          </p>
+          <div class="gallery-stage">
+            <svg
+              id="gallery-preview"
+              viewBox="0 0 24 24"
+              role="img"
+              aria-label="任意图标变形预览"
+            ></svg>
+            <div>
+              <strong id="gallery-current" aria-live="polite"></strong>
+              <p id="gallery-count"></p>
+              <div class="targets">
+                <button id="gallery-random" type="button">随机一个</button
+                ><button id="gallery-tour" type="button" aria-pressed="false">
+                  自动轮播</button
+                ><button id="gallery-stress" type="button" aria-pressed="false">
+                  快速切换 20 次
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="gallery-controls">
+            <label
+              ><span data-i18n="galleryFilter">分类</span
+              ><select id="gallery-filter">
+                <option value="all">全部</option>
+                <option value="interface">界面</option>
+                <option value="media">媒体</option>
+                <option value="state">状态</option>
+                <option value="shape">轮廓</option>
+                <option value="paint">颜色</option>
+              </select></label
+            >
+            <label
+              ><span data-i18n="duration">动画时长</span
+              ><select id="gallery-duration">
+                <option value="300">300 ms</option>
+                <option value="600" selected>600 ms</option>
+                <option value="1200">1200 ms</option>
+              </select></label
+            >
+            <label
+              ><span data-i18n="motion">动画效果</span
+              ><select id="gallery-motion">
+                <option value="quad-in-out" data-i18n="smooth">平滑</option>
+                <option value="spring-snappy" selected data-i18n="snappy">
+                  轻微回弹
+                </option>
+                <option value="spring-bouncy" data-i18n="bouncy">
+                  明显回弹
+                </option>
+              </select></label
+            >
+          </div>
+          <div
+            class="gallery-icons"
+            role="group"
+            aria-label="选择目标图标"
+          ></div>
+          <h3 data-i18n="galleryPairs">常见状态配对</h3>
+          <p data-i18n="galleryPairsHint">
+            重复点击同一配对，在两个状态之间切换。
+          </p>
+          <div
+            class="gallery-pairs"
+            role="group"
+            aria-label="常见状态配对"
+          ></div>
+          <p class="note" data-i18n="galleryLimit">
+            原生描边新增或消失的线条会沿自身路径画出或收回；其他部分使用通用几何与颜色变形。覆盖填充、孔洞、多轮廓、多色、透明度和渐变。填充眼睛的中心线仍需人工提供。
+          </p>
+        </section>
         <section id="api">
           <h2>API</h2>
           <p data-i18n="apiHint">
@@ -271,10 +348,14 @@ icon.to('close', { easing: 'spring-snappy', duration: 750 })</code></pre>
           <pre><code>import { createMorphPlan, springProgress } from 'svg-morpheus-ts/core'
 
 const plan = createMorphPlan(
-  [{ d: 'M4 6H20M4 12H20M4 18H20', allowReverse: true }],
-  [{ d: 'M6 6L18 18M18 6L6 18', allowReverse: true }],
+  [{ d: 'M4 6H20M4 12H20M4 18H20', allowReverse: true, draw: true }],
+  [{ d: 'M6 6L18 18M18 6L6 18', allowReverse: true, draw: true }],
 )
 const paths = plan.frame(springProgress(0.5, 'snappy'))</code></pre>
+          <p class="note" data-i18n="coreDraw">
+            描边路径可设置 draw:
+            true，使新增或消失的轮廓沿原路径画出/收回。填充路径不应开启；已有对应轮廓仍使用几何变形。
+          </p>
           <h3 data-i18n="paint">颜色与渐变</h3>
           <p data-i18n="paintHint">
             createPaintPlan() 插值绘制属性，renderPaintFrame() 生成 SVG

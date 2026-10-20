@@ -233,6 +233,41 @@ test("cancel preserves the displayed geometry and destroy is idempotent", () => 
   assert.throws(() => m.to("a"), /destroyed/);
   assert.throws(() => m.addIcon("c", "<path/>"), /destroyed/);
 });
+
+test("retargeting a gradient crossfade preserves the displayed paints at its first frame", () => {
+  const el = svg(
+    '<defs><linearGradient id="lin"><stop stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient><radialGradient id="rad"><stop stop-color="yellow"/><stop offset="1" stop-color="green"/></radialGradient></defs><g id="a"><path fill="url(#lin)" d="M3 3H21V21H3Z"/></g><g id="b"><path fill="url(#rad)" d="M3 3H21V21H3Z"/></g><g id="c"><path fill="purple" d="M3 3H21V21H3Z"/></g>',
+  );
+  const m = make(el);
+  const displayed = () =>
+    [...el.querySelectorAll("g path")]
+      .map((path) => {
+        let opacity = 1;
+        for (let p = path; p && p !== el; p = p.parentElement)
+          opacity *= Number(p.getAttribute("opacity") ?? 1);
+        const fill = path.getAttribute("fill"),
+          id = /url\(#([^\)]+)\)/.exec(fill ?? "")?.[1],
+          gradient = id ? el.querySelector(`[id="${id}"]`) : null;
+        return {
+          d: path.getAttribute("d"),
+          opacity: Number(opacity.toFixed(6)),
+          fill: gradient ? gradient.localName + gradient.innerHTML : fill,
+        };
+      })
+      .filter((item) => item.opacity > 0)
+      .sort((a, b) => a.fill.localeCompare(b.fill));
+  m.to("b", { easing: "linear" });
+  tick(0);
+  tick(40);
+  const before = displayed();
+  assert.equal(before.length, 2);
+  m.to("c", { easing: "linear" });
+  tick(40);
+  assert.deepEqual(displayed(), before);
+  tick(140);
+  assert.equal(el.querySelectorAll("g path").length, 1);
+  m.destroy();
+});
 test("finish cancellation fires completion exactly once and trims balancing paths", () => {
   const el = svg(
     '<g id="a"><path d="M0 0L4 0L4 4Z"/><path d="M10 10L14 10L14 14Z"/></g><g id="b"><path d="M0 0L20 0L20 20Z"/></g>',
@@ -249,6 +284,29 @@ test("finish cancellation fires completion exactly once and trims balancing path
   m.cancel(true);
   assert.equal(count, 1);
   valid(el);
+  m.destroy();
+});
+
+test("native stroke state changes retain shared geometry while the added slash draws from its start", () => {
+  const bell = "M5 17H19L17 14V9A5 5 0 0 0 7 9V14Z";
+  const el = svg(
+      `<g id="a" fill="none" stroke="currentColor"><path d="${bell}"/></g><g id="b" fill="none" stroke="currentColor"><path d="${bell}"/><path d="M3 3L21 21"/></g>`,
+    ),
+    m = make(el);
+  const before = curvePathBBox(
+    path2curve(el.querySelector("g path").getAttribute("d")),
+  );
+  m.to("b", { easing: "linear" });
+  tick(0);
+  tick(50);
+  const common = el.querySelector('path[data-morph-index="0"]'),
+    slash = el.querySelector('path[data-morph-index="1"]');
+  const box = curvePathBBox(path2curve(common.getAttribute("d"))),
+    line = curvePathBBox(path2curve(slash.getAttribute("d")));
+  for (const key of ["x", "y", "w", "h"])
+    assert.ok(Math.abs(box[key] - before[key]) < 1e-8);
+  assert.ok(Math.abs(line.x - 3) < 1e-8 && Math.abs(line.y - 3) < 1e-8);
+  assert.ok(Math.abs(line.w - 9) < 0.01 && Math.abs(line.h - 9) < 0.01);
   m.destroy();
 });
 test("nested groups, transforms, inherited paint, polyline, holes and style survive", () => {

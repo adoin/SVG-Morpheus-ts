@@ -28,6 +28,8 @@ export interface PaintStyle {
   fill?: Paint;
   stroke?: Paint;
   groups?: OpacityGroup[];
+  /** Composited paint on one geometry path, retained when a crossfade is interrupted. */
+  layers?: PaintLayer[];
 }
 export interface PaintLayer {
   style: PaintStyle;
@@ -38,6 +40,41 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const number = (v: string, scale = 1) =>
   parseFloat(v) * (String(v).endsWith("%") ? scale / 100 : 1);
 const decimal = (v: number) => String(+v.toFixed(6));
+
+/** Keep paint history on its logical geometry instead of duplicating morph paths. */
+export function compactPaintLayers(
+  layers: readonly PaintLayer[],
+): PaintLayer[] {
+  const output: PaintLayer[] = [],
+    identical = new Map<string, PaintLayer>();
+  const append = (layer: PaintLayer, weight: number) => {
+    const w = weight * layer.weight;
+    if (w <= 0) return;
+    if (layer.style.layers) {
+      for (const nested of layer.style.layers) append(nested, w);
+      return;
+    }
+    const style = JSON.parse(JSON.stringify(layer.style)) as PaintStyle;
+    if (
+      style.attributes.opacity !== undefined &&
+      number(style.attributes.opacity) === 0
+    )
+      return;
+    if (style.fill !== undefined) delete style.attributes.fill;
+    if (style.stroke !== undefined) delete style.attributes.stroke;
+    // Shared opacity groups must retain their layer order and joint compositing boundary.
+    const key = style.groups?.length ? undefined : JSON.stringify(style);
+    const previous = key === undefined ? undefined : identical.get(key);
+    if (previous) previous.weight += w;
+    else {
+      const entry = { style, weight: w };
+      output.push(entry);
+      if (key !== undefined) identical.set(key, entry);
+    }
+  };
+  for (const layer of layers) append(layer, 1);
+  return output;
+}
 
 /** DOM-free CSS named/hex/RGB/HSL color parsing; unresolved contextual paints stay live. */
 export function parseColor(value: string): Color | undefined {
@@ -368,6 +405,12 @@ export function createPaintPlan(
       return Array.from({ length: Math.max(a.length, b.length) }, (_, i) => {
         const start = a[i],
           end = b[i];
+        if (start?.layers || end?.layers) {
+          const layers: PaintLayer[] = [];
+          if (start) layers.push({ style: copy(start), weight: 1 - t });
+          if (end) layers.push({ style: copy(end), weight: t });
+          return compactPaintLayers(layers);
+        }
         if (!start || !end)
           return [{ style: copy(start ?? end), weight: start ? 1 - t : t }];
         if (t === 0) return [{ style: copy(start), weight: 1 }];

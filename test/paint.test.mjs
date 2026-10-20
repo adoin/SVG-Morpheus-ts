@@ -20,6 +20,36 @@ const style = (fill, groups = []) => ({
   fill,
   groups,
 });
+
+test("interrupted composited paint keeps weights and compacts identical ungrouped paints", () => {
+  let snapshot = {
+    attributes: {},
+    layers: [
+      { style: style("red"), weight: 0.4 },
+      { style: style("blue"), weight: 0.6 },
+    ],
+  };
+  const input = JSON.stringify(snapshot);
+  const first = createPaintPlan([snapshot], [style("green")]).frame(0.25)[0];
+  first.forEach((layer, i) =>
+    assert.ok(Math.abs(layer.weight - [0.3, 0.45, 0.25][i]) < 1e-12),
+  );
+  assert.equal(JSON.stringify(snapshot), input);
+  for (let i = 0; i < 200; i++) {
+    const frame = createPaintPlan(
+      [snapshot],
+      [style(i % 2 ? "red" : "blue")],
+    ).frame(0.2);
+    snapshot = { attributes: {}, layers: frame[0] };
+    assert.ok(frame[0].length <= 2);
+    assert.ok(
+      Math.abs(frame[0].reduce((sum, l) => sum + l.weight, 0) - 1) < 1e-9,
+    );
+  }
+  const end = createPaintPlan([snapshot], [style("green")]).frame(1);
+  assert.equal(end[0].length, 1);
+  assert.equal(end[0][0].style.fill, "green");
+});
 test("DOM-free parser covers CSS names, short/long alpha hex and modern RGB/HSL", () => {
   assert.equal(parseColor("rebeccapurple").r, 102);
   assert.equal(parseColor("#f008").opacity, 136 / 255);

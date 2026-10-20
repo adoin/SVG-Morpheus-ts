@@ -313,3 +313,97 @@ pre {
   background: #fff;
   color: #536583;
 }
+.gallery-stage {
+  position: sticky;
+  top: 84px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  padding: 24px;
+  background: #f7f9fd;
+  border-radius: 16px;
+  margin: 20px 0;
+}
+.gallery-stage > svg {
+  width: 132px;
+  height: 132px;
+  flex: none;
+  overflow: visible;
+  color: #43546e;
+}
+.gallery-stage strong {
+  font-size: 22px;
+}
+.gallery-stage p {
+  margin: 8px 0 16px;
+  color: #6c7b94;
+}
+.gallery-stage .targets {
+  justify-content: flex-start;
+}
+.gallery-controls {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
+.gallery-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gallery-icons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 8px;
+}
+.gallery-icons button {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 8px;
+  min-height: 82px;
+  padding: 12px 4px;
+  font-size: 12px;
+  background: #f4f7fc;
+  color: #43546e;
+}
+.gallery-icons button:hover {
+  background: #e3ebfc;
+}
+.gallery-icons button[aria-pressed="true"] {
+  background: var(--accent);
+  color: white;
+}
+.gallery-icons svg {
+  width: 26px;
+  height: 26px;
+  overflow: visible;
+}
+.gallery-pairs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.gallery-pairs button {
+  font-size: 13px;
+  padding: 8px 12px;
+}
+@media (max-width: 650px) {
+  .gallery-stage {
+    gap: 18px;
+    padding: 18px;
+    flex-wrap: wrap;
+  }
+  .gallery-stage > svg {
+    width: 96px;
+    height: 96px;
+  }
+  .gallery-controls {
+    gap: 12px;
+  }
+  .gallery-icons {
+    grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+  }
+}

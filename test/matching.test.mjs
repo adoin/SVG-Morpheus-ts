@@ -14,6 +14,33 @@ const near = (actual, expected, tolerance = 1e-6) =>
     Math.abs(actual - expected) < tolerance,
     `${actual} != ${expected}`,
   );
+test("unmatched stroked lines draw and retract from their original starting point", () => {
+  const line = { d: "M2 4H22", draw: true };
+  const birth = createMorphPlan([], [line]),
+    death = createMorphPlan([line], []);
+  for (const t of [0.25, 0.5, 0.75]) {
+    const a = curvePathBBox(path2curve(birth.frame(t)[0])),
+      b = curvePathBBox(path2curve(death.frame(t)[0]));
+    near(a.x, 2);
+    near(a.y, 4);
+    near(a.w, 20 * t, 0.02);
+    near(b.x, 2);
+    near(b.w, 20 * (1 - t), 0.02);
+  }
+  near(curvePathBBox(path2curve(birth.frame(1.2)[0])).w, 20);
+  near(curvePathBBox(path2curve(death.frame(1.2)[0])).w, 0);
+});
+test("drawing a curved stroke retains its original radius instead of scaling the arc", () => {
+  const plan = createMorphPlan(
+    [],
+    [{ d: "M10 0A10 10 0 0 1 0 10", draw: true }],
+  );
+  const curve = path2curve(plan.frame(0.5)[0]),
+    end = curve.at(-1).slice(-2);
+  near(Math.hypot(...end), 10, 0.01);
+  near(end[0], Math.SQRT1_2 * 10, 0.02);
+  near(end[1], Math.SQRT1_2 * 10, 0.02);
+});
 const endpoints = (d) => {
   const c = path2curve(d);
   return [c[0].slice(1), c.at(-1).slice(-2)];

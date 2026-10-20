@@ -12,7 +12,7 @@ void d;
 
 import { createMorphPlan, springProgress } from "../dist/core.js";
 import type { MorphPlan, MorphPath } from "../dist/core.js";
-const inputs: MorphPath[] = [{ d: shape, allowReverse: false }];
+const inputs: MorphPath[] = [{ d: shape, allowReverse: false, draw: true }];
 const plan: MorphPlan = createMorphPlan(inputs, inputs);
 const frame: string[] = plan.frame(springProgress(0.5));
 void frame;

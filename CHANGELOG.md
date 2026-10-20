@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- Retain interrupted crossfade paints on their logical geometry instead of treating rendered paint layers as new morph paths. Repeated rapid retargeting no longer doubles the geometry count or reaches the path budget; matching ungrouped paints are compacted without dropping visible layers.
+
+### Added
+- Unmatched native stroked contours draw and retract along their existing arc length; the DOM controller detects stroke-only artwork automatically and core callers can opt in with `MorphPath.draw`.
+- A bilingual icon playground with 43 icons, 17 state pairs, free cross-category switching, an auto tour, and rapid interruption playback. Includes strokes, filled shapes, holes, multicolor, alpha and linear/radial gradients.
+- Ordered-pair geometry/DOM checks, rapid retargeting regression coverage and crossfade first-frame continuity checks.
+
 ## [1.5.3] - 2026-10-20
 
 ### Fixed

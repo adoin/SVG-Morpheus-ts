@@ -4,8 +4,19 @@ import { eyePair, eyeCenterlines } from "../research/fixtures.mjs";
 import { createSharedStrokePlan } from "../research/shared-stroke.mjs";
 import { createSharedFillPlan } from "../research/shared-fill.mjs";
 import pkg from "../package.json";
+import { createIconGallery } from "./icon-gallery.mjs";
 
 const english = {
+  coreDraw:
+    "Set draw: true on stroked paths to draw or retract unmatched contours along their original paths. Keep it off for filled artwork; matched contours still use geometry morphing.",
+  gallery: "Icon playground",
+  galleryHint:
+    "Click any icon, switch across categories, or choose another while the animation is running. One preview instance continues from the displayed frame toward the new target.",
+  galleryFilter: "Category",
+  galleryPairs: "Common state pairs",
+  galleryPairsHint: "Click a pair repeatedly to switch between its two states.",
+  galleryLimit:
+    "New or disappearing native strokes draw or retract along their paths. Other geometry and paint morph normally, including filled shapes, holes, multiple contours, multicolor, alpha and gradients. Filled-eye centerlines still need to be authored.",
   eyeTitle: "Eye transition: keep the shared region fixed",
   eyeHint:
     "The disappearing arcs retract along their own centerlines, preserving their radius, width and original vector edges. Shared areas stay fixed. Scrub to see the moving endpoint, or compare the previous scaling and fading experiments.",
@@ -116,6 +127,7 @@ const text = (key) =>
 document.querySelector("[data-version]").textContent = `v${pkg.version}`;
 for (const preset of ["snappy", "bouncy"])
   easings[`spring-${preset}`] = (t) => springProgress(t, preset);
+const gallery = createIconGallery();
 const controller = new SVGMorpheus("#demo", {
   iconId: "menu",
   duration: 750,
@@ -171,6 +183,7 @@ function renderResearch() {
 }
 function setLanguage(value) {
   language = value;
+  gallery.setLanguage(value);
   document
     .querySelector("#eye-motion")
     .setAttribute(
@@ -345,7 +358,11 @@ document.querySelector("#eye-play").addEventListener("click", () => {
 drawEye(0);
 setLanguage("zh");
 window.addEventListener("pagehide", (event) => {
+  gallery.pause();
   cancelAnimationFrame(eyeRAF);
   cancelAnimationFrame(strokeRAF);
-  if (!event.persisted) controller.destroy();
+  if (!event.persisted) {
+    controller.destroy();
+    gallery.destroy();
+  }
 });
