@@ -192,6 +192,47 @@ test("published spring profiles have stable endpoints and explicit overshoot", (
   );
 });
 
+test("spring bounce does not regrow a disappearing hole or invert a newly born contour", () => {
+  const outlined = { d: "M2 2H22V22H2ZM6 6V18H18V6Z" },
+    solid = { d: "M2 2H22V22H2Z" };
+  const parts = (d) => {
+    const groups = [];
+    for (const segment of path2curve(d)) {
+      if (segment[0] === "M") groups.push([]);
+      groups.at(-1).push(segment);
+    }
+    return groups;
+  };
+  const disappearing = createMorphPlan([outlined], [solid]);
+  for (const t of [1, 1.01, 1.1, 1.3]) {
+    const hole = parts(disappearing.frame(t)[0])[1];
+    near(curvePathBBox(hole).w, 0);
+    near(curvePathBBox(hole).h, 0);
+  }
+  const appearing = createMorphPlan([solid], [outlined]);
+  const before = parts(appearing.frame(-0.2)[0])[1];
+  near(curvePathBBox(before).w, 0);
+  near(curvePathBBox(before).h, 0);
+});
+
+test("spring presets retain visible movement and settle continuously across the duration", () => {
+  for (const profile of ["smooth", "snappy", "bouncy"]) {
+    assert.ok(
+      springProgress(0.25, profile) > 0.05 &&
+        springProgress(0.25, profile) < 0.8,
+    );
+    assert.ok(Math.abs(springProgress(0.99999, profile) - 1) < 0.00001);
+    const peak = Math.max(
+      ...Array.from({ length: 101 }, (_, i) =>
+        springProgress(i / 100, profile),
+      ),
+    );
+    if (profile === "smooth") near(peak, 1);
+    if (profile === "snappy") assert.ok(peak > 1 && peak < 1.15);
+    if (profile === "bouncy") assert.ok(peak > 1.2 && peak < 1.4);
+  }
+});
+
 test("eye pupil reaches the correct circular endpoint before raw SVG restoration", () => {
   const target =
     "M16 10a6 6 0 1 0 6 6a6 6 0 0 0-6-6m0 10a4 4 0 1 1 4-4a4 4 0 0 1-4 4";

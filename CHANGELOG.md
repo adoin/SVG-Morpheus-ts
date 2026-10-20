@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.3] - 2026-10-20
+
+### Fixed
+- Spring overshoot no longer reverses disappearing contours or regenerates holes after they reach zero size; rigid rotation, translation and scale can still bounce.
+- Spread spring movement across the duration, normalize the endpoint and use a zero-velocity time envelope, avoiding an almost instant main transition followed by a long idle tail.
+
 ## [1.5.2] - 2026-10-20
 
 ### Fixed

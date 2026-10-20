@@ -411,14 +411,16 @@ function contourPlan(a: Contour, original: Contour, allowReverse: boolean) {
     return { from, to };
   });
   return (t: number) => {
+    // Bounce rigid motion, never invert a disappearing contour past zero size.
+    const shapeProgress = Math.max(0, Math.min(1, t));
     const scale = best.scale ** t,
       rotation = best.angle * t;
     const result: CurveData = [];
     for (const [index, curve] of curves.entries()) {
       const points = curve.from.map((p, i) => {
         const local: Point = [
-          lerp(p[0] - best.ac[0], curve.to[i][0], t),
-          lerp(p[1] - best.ac[1], curve.to[i][1], t),
+          lerp(p[0] - best.ac[0], curve.to[i][0], shapeProgress),
+          lerp(p[1] - best.ac[1], curve.to[i][1], shapeProgress),
         ];
         const turned = rotate(local, rotation);
         return [
@@ -492,13 +494,18 @@ export function springProgress(
   if (t >= 1) return 1;
   if (t <= 0) return 0;
   const [frequency, damping] =
-    profile === "bouncy" ? [18, 7] : profile === "smooth" ? [14, 14] : [20, 12];
-  if (frequency === damping)
-    return 1 - (1 + frequency * t) * Math.exp(-frequency * t);
-  const omega = Math.sqrt(frequency * frequency - damping * damping);
-  return (
-    1 -
-    Math.exp(-damping * t) *
-      (Math.cos(omega * t) + (damping / omega) * Math.sin(omega * t))
-  );
+    profile === "bouncy" ? [7.5, 3.5] : profile === "smooth" ? [6, 6] : [8, 5];
+  const response = (time: number) => {
+    if (frequency === damping)
+      return 1 - (1 + frequency * time) * Math.exp(-frequency * time);
+    const omega = Math.sqrt(frequency * frequency - damping * damping);
+    return (
+      1 -
+      Math.exp(-damping * time) *
+        (Math.cos(omega * time) + (damping / omega) * Math.sin(omega * time))
+    );
+  };
+  // Spread the movement across the requested duration and settle with zero velocity.
+  const time = t * t * (3 - 2 * t);
+  return response(time) / response(1);
 }
