@@ -1,8 +1,11 @@
+import type { EasingFunction, CurveData } from './core-types';
+export type { EasingFunction, CurveSegment, CurveData, BoundingBox } from './core-types';
 // Animation easing functions | 动画缓动函数类型
-export type EasingFunction = (t: number) => number;
 
 // SVG Morpheus configuration options | SVG Morpheus 配置选项
 export interface SVGMorpheusOptions {
+  /** Follow prefers-reduced-motion by default; 'always' switches instantly. */
+  reducedMotion?: 'user' | 'always' | 'never';
   /** 
    * Initial icon ID to display | 初始显示的图标ID
    * Specifies which icon to display by default when SVGMorpheus is instantiated | 指定 SVGMorpheus 实例化后默认显示哪个图标
@@ -40,6 +43,9 @@ export interface SVGMorpheusOptions {
 
 // Style attributes for SVG elements | SVG 元素样式属性
 export interface StyleAttributes {
+  'fill-rule'?: string;
+  'stroke-linecap'?: string;
+  'stroke-linejoin'?: string;
   fill?: string;
   'fill-opacity'?: string;
   opacity?: string;
@@ -62,6 +68,9 @@ export interface RGBColor {
 
 // Normalized style values | 标准化样式值
 export interface NormalizedStyle {
+  'fill-rule'?: string;
+  'stroke-linecap'?: string;
+  'stroke-linejoin'?: string;
   /** Fill color or gradient reference | 填充颜色或渐变引用 */
   fill?: RGBColor | string;
   /** Stroke color or gradient reference | 描边颜色或渐变引用 */
@@ -84,8 +93,6 @@ export interface Transform {
 
 // Curve data - array of curve segments, each segment is an array starting with command and coordinates
 // 曲线数据 - 曲线段数组，每个段是以命令和坐标开始的数组
-export type CurveSegment = (string | number)[];
-export type CurveData = CurveSegment[];
 
 // Icon item structure | 图标项结构
 export interface IconItem {
@@ -152,20 +159,7 @@ export interface MorphNode {
 }
 
 // Bounding box | 边界框
-export interface BoundingBox {
-  /** X coordinate | X 坐标 */
-  x: number;
-  /** Y coordinate | Y 坐标 */
-  y: number;
-  /** Width | 宽度 */
-  w: number;
-  /** Height | 高度 */
-  h: number;
-  /** Center X coordinate | 中心 X 坐标 */
-  cx: number;
-  /** Center Y coordinate | 中心 Y 坐标 */
-  cy: number;
-}
+
 
 // Options for the to() method | to() 方法的选项
 export interface ToMethodOptions {

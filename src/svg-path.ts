@@ -11,7 +11,7 @@ export function parsePathString(pathString: any): any {
   }
 
   if (Array.isArray(pathString)) {
-    return pathString;
+    return pathString.map((segment: (string | number)[]) => segment.slice());
   } else {
     const paramCounts: any = {
       a: 7, c: 6, o: 2, h: 1, l: 2, m: 2, r: 4, q: 4, s: 4, t: 2, v: 1, u: 3, z: 0
@@ -62,7 +62,7 @@ export function pathToAbsolute(pathArray: any): any {
   let x = 0, y = 0, mx = 0, my = 0;
   let start = 0;
   
-  if (parsed[0][0] === "M".charCodeAt(0)) { // "M"
+  if (parsed[0][0] === "M".charCodeAt(0) || parsed[0][0] === "M") { // "M"
     x = +parsed[0][1];
     y = +parsed[0][2];
     mx = x;
@@ -75,7 +75,7 @@ export function pathToAbsolute(pathArray: any): any {
     const r: any = [];
     const pa = parsed[i];
     const pa0 = pa[0];
-    const cmd = String.fromCharCode(pa0);
+    const cmd = typeof pa0 === 'number' ? String.fromCharCode(pa0) : String(pa0);
     
     if (cmd !== cmd.toUpperCase()) { // relative command (lowercase)
       r[0] = cmd.toUpperCase(); // convert to uppercase

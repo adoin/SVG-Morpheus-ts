@@ -8,6 +8,9 @@ export { SVGMorpheus } from './svg-morpheus';
 export type {
   EasingFunction,
   SVGMorpheusOptions,
+  ToMethodOptions,
+  CurveData,
+  CurveSegment,
   StyleAttributes,
   RGBColor,
   NormalizedStyle,

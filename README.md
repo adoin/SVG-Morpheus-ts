@@ -1,6 +1,6 @@
 # SVG Morpheus TypeScript
 
-> **⚡ This project is a TypeScript refactoring based on [alexk111/SVG-Morpheus](https://github.com/alexk111/SVG-Morpheus)**  
+> **⚡ This project is a TypeScript refactoring based on [alexk111/SVG-Morpheus](https://github.com/alexk111/SVG-Morpheus)**
 > Original project by [@alexk111](https://github.com/alexk111) - refactored with modern TypeScript + Vite + pnpm
 
 [中文](./README.zh.md) | **English**
@@ -84,7 +84,7 @@ transformedGradient: x1="0.0%" y1="7.652%" x2="57.636%" y2="78.411%"
 ## 🏗️ Installation
 
 ```bash
-npm install svg-morpheus
+npm install svg-morpheus-ts
 ```
 
 ## 📖 Usage
@@ -105,11 +105,11 @@ const myMorpheus = new SVGMorpheus('#my-svg');
 ### Import Type Definitions
 
 ```typescript
-import type { 
-  SVGMorpheusOptions, 
-  IconItem, 
+import type {
+  SVGMorpheusOptions,
+  IconItem,
   EasingFunction,
-  RGBColor 
+  RGBColor
 } from 'svg-morpheus-ts';
 
 // Use types
@@ -125,7 +125,7 @@ const customEasing: EasingFunction = (t: number) => t * t;
 ### Import Utility Functions
 
 ```typescript
-import { 
+import {
   easings,           // Predefined easing functions
   pathToAbsolute,    // Path conversion utilities
   styleNormCalc,     // Style calculation utilities
@@ -152,9 +152,9 @@ const bundledSvgString = await bundleSvgsString(svgMap);
 ### Complete Example
 
 ```typescript
-import SVGMorpheus, { 
-  type SVGMorpheusOptions, 
-  easings 
+import SVGMorpheus, {
+  type SVGMorpheusOptions,
+  easings
 } from 'svg-morpheus-ts';
 
 // Configuration options
@@ -192,7 +192,7 @@ morpheus.to('icon-name');
 ### CommonJS
 
 ```javascript
-const { SVGMorpheus } = require('svg-morpheus');
+const { SVGMorpheus } = require('svg-morpheus-ts');
 
 const morpheus = new SVGMorpheus('svg');
 morpheus.to('icon-name');
@@ -286,7 +286,7 @@ pnpm build
 
 Build output will be generated in the `dist/` directory:
 - `index.js` - ES module
-- `index.cjs` - CommonJS module  
+- `index.cjs` - CommonJS module
 - `index.umd.js` - UMD module
 - `index.d.ts` - TypeScript type definitions
 
@@ -536,3 +536,46 @@ If you need to support older browsers, consider these polyfills:
 ```
 
 **Note**: The core SVG morphing functionality works in older browsers (IE 10+), but the new `bundleSvgs` feature requires modern browsers with fetch API support.
+
+## Framework integration and lifecycle (1.3)
+
+ESM, CommonJS and svg-morpheus-ts/core imports are safe in Node/SSR. Constructing a DOM instance or animating requires a browser. Use the core entry for geometry without loading the DOM renderer.
+
+```ts
+import { path2curve, path2string, curveCalc } from 'svg-morpheus-ts/core'
+
+const [from, to] = path2curve('M0 0L10 10', [['M', 0, 10], ['L', 10, 0]])
+const halfway = path2string(curveCalc(from, to, 0.5))
+```
+
+```ts
+import SVGMorpheus from 'svg-morpheus-ts'
+
+const morph = new SVGMorpheus(svgElement, {
+  duration: 360,
+  rotation: 'none',
+  reducedMotion: 'user',
+})
+morph.addIcon('menu', '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" d="M4 6H20M4 12H20M4 18H20"/></svg>')
+morph.addIcon('close', '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" d="M6 6L18 18M18 6L6 18"/></svg>')
+morph.to('close')
+morph.cancel()
+morph.set('menu')
+morph.destroy()
+```
+
+| API | Behavior |
+| --- | --- |
+| `addIcon(id, markupOrElement)` | Register or replace inline SVG / SVGElement; returns the instance. The first icon in an empty instance displays immediately. |
+| `removeIcon(id)` | Return whether an icon was removed. Removing the current or target icon cancels and clears the surface. |
+| `getIconIds()` | Return a new ID array without exposing internal storage. |
+| `set(id)` | Switch synchronously without scheduling frames; equivalent to duration: 0. |
+| `cancel(finish = false)` | Retain the displayed shape without completion; true commits the target and calls completion once. |
+| `isAnimating` | Whether an animation frame is pending. |
+| `destroy()` | Idempotently cancel frames, remove pending load listeners and release DOM/icon references. Leave the last artwork in place; subsequent mutation methods throw. |
+
+reducedMotion defaults to user and checks system preferences when an animation starts. always switches immediately; never uses the configured duration. Duration must be finite and nonnegative. Unknown icons/easings and invalid parameters throw without cancelling an existing valid animation.
+
+Supports path, circle, ellipse, rect, polygon, polyline and line; nested group translate/scale/rotate/matrix/skew and inherited fill, stroke, opacity, caps, joins and fill rules. currentColor and CSS variables remain contextual. Inputs must be trusted SVG. Masks, clipping, filters, use references and nested SVG viewports are unsupported and rejected explicitly.
+
+In Vue, construct the instance in onMounted and call destroy in onBeforeUnmount. Use addIcon and to for changed icons instead of rebuilding the entire SVG.

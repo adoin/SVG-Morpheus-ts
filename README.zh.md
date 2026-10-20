@@ -1,6 +1,6 @@
 # SVG Morpheus TypeScript
 
-> **⚡ 本项目基于 [alexk111/SVG-Morpheus](https://github.com/alexk111/SVG-Morpheus) 进行 TypeScript 重构**  
+> **⚡ 本项目基于 [alexk111/SVG-Morpheus](https://github.com/alexk111/SVG-Morpheus) 进行 TypeScript 重构**
 > 原始项目作者：[@alexk111](https://github.com/alexk111) - 使用现代化 TypeScript + Vite + pnpm 重构
 
 **中文** | [English](./README.md)
@@ -54,7 +54,7 @@ JavaScript库，使SVG图标能够从一个变形到另一个。它实现了Mate
 ```javascript
 // 各自的旋转中心导致"位移"效果
 path1Center: (17.38, 0.006)  // vite 路径 1
-path2Center: (23.92, 3.54)   // vite 路径 2  
+path2Center: (23.92, 3.54)   // vite 路径 2
 targetCenter: (12, 12)       // diamond 中心
 // 结果：路径"飞向"不同的中心
 ```
@@ -84,7 +84,7 @@ transformedGradient: x1="0.0%" y1="7.652%" x2="57.636%" y2="78.411%"
 ## 🏗️ 安装
 
 ```bash
-npm install svg-morpheus
+npm install svg-morpheus-ts
 ```
 
 ## 📖 使用方法
@@ -105,11 +105,11 @@ const myMorpheus = new SVGMorpheus('#my-svg');
 ### 导入类型定义
 
 ```typescript
-import type { 
-  SVGMorpheusOptions, 
-  IconItem, 
+import type {
+  SVGMorpheusOptions,
+  IconItem,
   EasingFunction,
-  RGBColor 
+  RGBColor
 } from 'svg-morpheus-ts';
 
 // 使用类型
@@ -125,7 +125,7 @@ const customEasing: EasingFunction = (t: number) => t * t;
 ### 导入工具函数
 
 ```typescript
-import { 
+import {
   easings,           // 预定义的缓动函数
   pathToAbsolute,    // 路径转换工具
   styleNormCalc,     // 样式计算工具
@@ -152,9 +152,9 @@ const bundledSvgString = await bundleSvgsString(svgMap);
 ### 完整示例
 
 ```typescript
-import SVGMorpheus, { 
-  type SVGMorpheusOptions, 
-  easings 
+import SVGMorpheus, {
+  type SVGMorpheusOptions,
+  easings
 } from 'svg-morpheus-ts';
 
 // 配置选项
@@ -192,7 +192,7 @@ morpheus.to('icon-name');
 ### CommonJS
 
 ```javascript
-const { SVGMorpheus } = require('svg-morpheus');
+const { SVGMorpheus } = require('svg-morpheus-ts');
 
 const morpheus = new SVGMorpheus('svg');
 morpheus.to('icon-name');
@@ -286,7 +286,7 @@ pnpm build
 
 构建产物将输出到 `dist/` 目录：
 - `index.js` - ES 模块
-- `index.cjs` - CommonJS 模块  
+- `index.cjs` - CommonJS 模块
 - `index.umd.js` - UMD 模块
 - `index.d.ts` - TypeScript 类型定义
 
@@ -383,7 +383,7 @@ MIT License
 
 ## 🙏 致谢
 
-基于原始的 [SVG Morpheus](https://github.com/alexk111/SVG-Morpheus) 项目，使用现代化技术栈重构。 
+基于原始的 [SVG Morpheus](https://github.com/alexk111/SVG-Morpheus) 项目，使用现代化技术栈重构。
 
 ## 🆕 动态SVG合并
 
@@ -490,7 +490,7 @@ const svgAttributes: Record<string, string | number> = {
 
 - **svgMap**: `Record<string, string>` - 将图标ID映射到SVG源的对象
 - **svgAttributes**: `Record<string, string | number>` (可选) - 根SVG元素的自定义属性
-- **返回值**: `Promise<string>` - 合并的SVG字符串 
+- **返回值**: `Promise<string>` - 合并的SVG字符串
 
 ## 浏览器兼容性
 
@@ -535,4 +535,46 @@ const svgAttributes: Record<string, string | number> = {
 <script src="https://polyfill.io/v3/polyfill.min.js?features=fetch,Promise"></script>
 ```
 
-**注意**：核心 SVG 变形功能在较旧的浏览器中有效（IE 10+），但新的 `bundleSvgs` 功能需要支持 fetch API 的现代浏览器。 
+**注意**：核心 SVG 变形功能在较旧的浏览器中有效（IE 10+），但新的 `bundleSvgs` 功能需要支持 fetch API 的现代浏览器。
+## 框架接入与生命周期（1.3）
+
+ESM、CommonJS 和 `svg-morpheus-ts/core` 均可在 Node/SSR 中安全导入。只有创建 DOM 实例和播放动画需要浏览器。纯几何计算优先使用 core 入口，避免载入 DOM 渲染器。
+
+```ts
+import { path2curve, path2string, curveCalc } from 'svg-morpheus-ts/core'
+
+const [from, to] = path2curve('M0 0L10 10', [['M', 0, 10], ['L', 10, 0]])
+const halfway = path2string(curveCalc(from, to, 0.5))
+```
+
+```ts
+import SVGMorpheus from 'svg-morpheus-ts'
+
+const morph = new SVGMorpheus(svgElement, {
+  duration: 360,
+  rotation: 'none',
+  reducedMotion: 'user',
+})
+morph.addIcon('menu', '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" d="M4 6H20M4 12H20M4 18H20"/></svg>')
+morph.addIcon('close', '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" d="M6 6L18 18M18 6L6 18"/></svg>')
+morph.to('close')
+morph.cancel()
+morph.set('menu')
+morph.destroy()
+```
+
+| API | 行为 |
+| --- | --- |
+| `addIcon(id, markupOrElement)` | 注册或替换内联 SVG / SVGElement，返回实例。空实例的首个图标立即显示。 |
+| `removeIcon(id)` | 返回是否移除；移除当前或目标图标会取消动画并清空绘图区。 |
+| `getIconIds()` | 返回新的 ID 数组，不暴露内部存储。 |
+| `set(id)` | 同步切换，不申请动画帧；等价于 duration: 0。 |
+| `cancel(finish = false)` | 默认保留当前可见形状且不触发完成回调；true 提交目标并调用一次完成回调。 |
+| `isAnimating` | 当前是否有待执行的动画帧。 |
+| `destroy()` | 可重复调用。取消帧、移除待加载监听器、释放 DOM 与图标引用，保留最后绘制的图形；销毁后的变更操作会抛错。 |
+
+`reducedMotion` 默认为 `user`，跟随动画开始时的系统偏好；`always` 始终立即切换，`never` 始终使用配置时长。时长必须为有限非负数。未知图标、未知缓动或无效参数会抛错，不应中止已有的有效动画。
+
+支持 path、circle、ellipse、rect、polygon、polyline、line，支持嵌套分组的 translate / scale / rotate / matrix / skew 与继承的填充、描边、不透明度、端点、连接和填充规则。currentColor 与 CSS 变量保持为上下文值。输入为可信 SVG；蒙版、裁剪、滤镜、use 外部引用和嵌套 SVG 视口不在支持范围内，会明确拒绝。
+
+在 Vue 的 onMounted 中创建实例，在 onBeforeUnmount 中调用 destroy。更换图标使用 addIcon 与 to，无需重建整个 SVG。

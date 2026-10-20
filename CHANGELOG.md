@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-10-20
+
+### Added
+- SSR-safe ESM/CommonJS imports and a DOM-free `svg-morpheus-ts/core` entry.
+- `addIcon`, `removeIcon`, `getIconIds`, `set`, `cancel`, `destroy`, and `isAnimating`.
+- Reduced-motion preferences, zero-duration changes and nested group transforms/styles.
+- Regression tests against built packages, including SSR and lifecycle cleanup.
+
+### Fixed
+- String-command array paths becoming NUL characters on repeated conversion.
+- Stale animation callbacks, timestamp-zero timing, interrupted rotation and viewBox state.
+- Synthetic balancing paths remaining in the completed artwork.
+- Contextual SVG paints, numeric style interpolation, polyline and compound-path support.
+- Global head style mutation during named-color conversion and duplicate gradient IDs.
+
 ## [1.2.0] - 2024-12-19
 
 ### 🐛 Fixed

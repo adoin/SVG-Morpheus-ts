@@ -8,19 +8,20 @@ interface ExtendedWindow extends Window {
   oCancelAnimationFrame?: typeof cancelAnimationFrame;
 }
 
-// 类型安全的 window 引用
-const extendedWindow = window as ExtendedWindow;
-
-// Request animation frame polyfills
-export const reqAnimFrame = extendedWindow.requestAnimationFrame || 
-  extendedWindow.mozRequestAnimationFrame || 
-  extendedWindow.webkitRequestAnimationFrame || 
-  extendedWindow.oRequestAnimationFrame;
-
-export const cancelAnimFrame = extendedWindow.cancelAnimationFrame || 
-  extendedWindow.mozCancelAnimationFrame || 
-  extendedWindow.webkitCancelAnimationFrame || 
-  extendedWindow.oCancelAnimationFrame;
+// Resolve browser APIs lazily so importing geometry helpers is SSR-safe.
+export const reqAnimFrame = (callback: FrameRequestCallback): number => {
+  if (typeof window === 'undefined') throw new Error('SVGMorpheus animation requires a browser');
+  const host = window as ExtendedWindow;
+  const request = host.requestAnimationFrame || host.mozRequestAnimationFrame || host.webkitRequestAnimationFrame || host.oRequestAnimationFrame;
+  return request ? request.call(host, callback) : host.setTimeout(() => callback(host.performance.now()), 16);
+};
+export const cancelAnimFrame = (id: number): void => {
+  if (typeof window === 'undefined') return;
+  const host = window as ExtendedWindow;
+  const cancel = host.cancelAnimationFrame || host.mozCancelAnimationFrame || host.webkitCancelAnimationFrame || host.oCancelAnimationFrame;
+  if (cancel) cancel.call(host, id);
+  else host.clearTimeout(id);
+};
 
 import { NormalizedStyle, RGBColor, StyleAttributes, Transform, CurveData } from './types';
 
@@ -54,6 +55,11 @@ export function styleNormCalc(styleNormFrom: NormalizedStyle, styleNormTo: Norma
           }
         }
         break;
+      case 'fill-rule':
+      case 'stroke-linecap':
+      case 'stroke-linejoin':
+        (styleNorm[i] as string | undefined) = progress < 0.5 ? styleNormFrom[i] : styleNormTo[i];
+        break;
       case 'opacity':
       case 'fill-opacity':
       case 'stroke-opacity':
@@ -86,6 +92,11 @@ export function styleNormToString(styleNorm: NormalizedStyle): StyleAttributes {
           }
         }
         break;
+      case 'fill-rule':
+      case 'stroke-linecap':
+      case 'stroke-linejoin':
+        if (styleNorm[i] !== undefined) style[i] = styleNorm[i];
+        break;
       case 'opacity':
       case 'fill-opacity':
       case 'stroke-opacity':
@@ -104,7 +115,7 @@ export function styleToNorm(styleFrom: StyleAttributes, styleTo: StyleAttributes
   
   // 检测是否为渐变引用
   const isGradientReference = (value: string): boolean => {
-    return typeof value === 'string' && value.trim().startsWith('url(#');
+    return /^(?:url\(|var\(|currentcolor$|none$|inherit$|context-fill$|context-stroke$)/i.test(value.trim());
   };
   
   for (const key in styleFrom) {
@@ -114,7 +125,7 @@ export function styleToNorm(styleFrom: StyleAttributes, styleTo: StyleAttributes
       case 'stroke':
         if (styleFrom[i]) {
           if (isGradientReference(styleFrom[i]!)) {
-            // 对于渐变引用，保持原始值，不进行RGB转换
+            // Keep contextual paints live.
             (styleNorm[0][i] as any) = styleFrom[i];
             if (styleTo[i] === undefined) {
               (styleNorm[1][i] as any) = styleFrom[i];
@@ -134,7 +145,7 @@ export function styleToNorm(styleFrom: StyleAttributes, styleTo: StyleAttributes
       case 'stroke-opacity':
       case 'stroke-width':
         if (styleFrom[i]) {
-          (styleNorm[0][i] as any) = styleFrom[i];
+          (styleNorm[0][i] as any) = parseFloat(styleFrom[i]!);
           if (styleTo[i] === undefined) {
             (styleNorm[1][i] as any) = 1;
           }
@@ -150,7 +161,7 @@ export function styleToNorm(styleFrom: StyleAttributes, styleTo: StyleAttributes
       case 'stroke':
         if (styleTo[i]) {
           if (isGradientReference(styleTo[i]!)) {
-            // 对于渐变引用，保持原始值，不进行RGB转换
+            // Keep contextual paints live.
             (styleNorm[1][i] as any) = styleTo[i];
             if (styleFrom[i] === undefined) {
               (styleNorm[0][i] as any) = styleTo[i];
@@ -170,12 +181,18 @@ export function styleToNorm(styleFrom: StyleAttributes, styleTo: StyleAttributes
       case 'stroke-opacity':
       case 'stroke-width':
         if (styleTo[i]) {
-          (styleNorm[1][i] as any) = styleTo[i];
+          (styleNorm[1][i] as any) = parseFloat(styleTo[i]!);
           if (styleFrom[i] === undefined) {
             (styleNorm[0][i] as any) = 1;
           }
         }
         break;
+    }
+  }
+  for (const key of ['fill-rule','stroke-linecap','stroke-linejoin'] as const) {
+    if(styleFrom[key]!==undefined||styleTo[key]!==undefined) {
+      styleNorm[0][key]=styleFrom[key]??styleTo[key];
+      styleNorm[1][key]=styleTo[key]??styleFrom[key];
     }
   }
   return styleNorm;
@@ -291,18 +308,14 @@ const rgbToString = function (rgb: RGBColor): string {
 };
 
 const toHex = function (color: string): string | null {
-  const i = window.document.getElementsByTagName("head")[0] || window.document.getElementsByTagName("svg")[0];
-  const red = "rgb(255, 0, 0)";
-  const toHexFunc = function (color: string): string | null {
-    if (color.toLowerCase() === "red") {
-      return red;
-    }
-    i.style.color = red;
-    i.style.color = color;
-    const out = window.document.defaultView?.getComputedStyle(i, "").getPropertyValue("color");
-    return out === red ? null : (out || null);
-  };
-  return toHexFunc(color);
+  if (typeof document === 'undefined') return null;
+  const probe = document.createElement('span');
+  probe.style.color = color;
+  if (!probe.style.color) return null;
+  probe.style.display = 'none';
+  (document.body || document.documentElement).appendChild(probe);
+  try { return document.defaultView?.getComputedStyle(probe).color || null; }
+  finally { probe.remove(); }
 };
 
 const packageRGB = function (r: number, g: number, b: number, o: number): RGBColor {

@@ -50,8 +50,8 @@ jobs:
     - name: Install dependencies
       run: pnpm install
 
-    - name: Build library
-      run: pnpm build
+    - name: Build and test library
+      run: pnpm test
 
     - name: Build demo for GitHub Pages
       run: |

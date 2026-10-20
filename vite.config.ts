@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => {
   // 然后在JS中使用：import.meta.env.VITE_SVG_BASE_PATH
   
   const isDemo = mode === 'demo';
+  const isCore = mode === 'core';
   const isDev = mode === 'development' || !mode || mode === 'dev';
   
   return {
@@ -63,17 +64,19 @@ export default defineConfig(({ mode }) => {
         },
       },
     } : {
+      // Core is built after the main bundle into the same output directory.
+      emptyOutDir: !isCore,
       // 库构建配置
       lib: {
-        entry: './src/index.ts',
+        entry: isCore ? './src/core.ts' : './src/index.ts',
         name: 'SVGMorpheus',
-        formats: ['es', 'cjs', 'umd'],
+        formats: isCore ? ['es', 'cjs'] : ['es', 'cjs', 'umd'],
         fileName: (format) => {
           switch (format) {
             case 'es':
-              return 'index.js';
+              return isCore ? 'core.js' : 'index.js';
             case 'cjs':
-              return 'index.cjs';
+              return isCore ? 'core.cjs' : 'index.cjs';
             case 'umd':
               return 'index.umd.js';
             default:
