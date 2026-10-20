@@ -270,6 +270,8 @@ export function path2curve(path: any, path2?: any): any {
     attrs2.by = p2 && (parseFloat(seg2[seg2len - 3]) || attrs2.y);
     attrs2.x = p2 && seg2[seg2len - 2];
     attrs2.y = p2 && seg2[seg2len - 1];
+    // Arc splitting and move alignment grow these arrays during traversal.
+    ii = Math.max(p.length, p2 && p2.length || 0);
   }
 
   return p2 ? [p, p2] : p;

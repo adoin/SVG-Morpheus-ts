@@ -55,3 +55,46 @@ test("currentColor and CSS variables remain contextual and numeric paint interpo
     "var(--icon-color)",
   );
 });
+
+test("consecutive large arcs normalize completely, including compound eye contours", () => {
+  const eye =
+    "M16 10a6 6 0 1 0 6 6a6 6 0 0 0-6-6m0 10a4 4 0 1 1 4-4a4 4 0 0 1-4 4";
+  const curves = core.path2curve(eye);
+  assert.ok(
+    curves.every((segment) => segment[0] === "M" || segment[0] === "C"),
+  );
+  assert.equal(curves.filter((s) => s[0] === "M").length, 2);
+  let point = [0, 0],
+    contour = 0;
+  for (const [command, ...v] of curves) {
+    if (command === "M") {
+      point = v;
+      contour++;
+      continue;
+    }
+    assert.equal(v.length, 6);
+    for (let i = 0; i <= 24; i++) {
+      const t = i / 24,
+        u = 1 - t;
+      const x =
+        u ** 3 * point[0] +
+        3 * u * u * t * v[0] +
+        3 * u * t * t * v[2] +
+        t ** 3 * v[4];
+      const y =
+        u ** 3 * point[1] +
+        3 * u * u * t * v[1] +
+        3 * u * t * t * v[3] +
+        t ** 3 * v[5];
+      assert.ok(
+        Math.abs(Math.hypot(x - 16, y - 16) - (contour === 1 ? 6 : 4)) < 0.02,
+      );
+    }
+    point = v.slice(-2);
+  }
+  const [a, b] = core.path2curve("M0 0L1 1", eye);
+  assert.equal(a.length, b.length);
+  assert.ok(
+    [...a, ...b].every((segment) => segment[0] === "M" || segment[0] === "C"),
+  );
+});

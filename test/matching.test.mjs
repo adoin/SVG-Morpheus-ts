@@ -171,3 +171,22 @@ test("published spring profiles have stable endpoints and explicit overshoot", (
     ) > 1,
   );
 });
+
+test("eye pupil reaches the correct circular endpoint before raw SVG restoration", () => {
+  const target =
+    "M16 10a6 6 0 1 0 6 6a6 6 0 0 0-6-6m0 10a4 4 0 1 1 4-4a4 4 0 0 1-4 4";
+  const plan = createMorphPlan(
+    [{ d: "M12 15.73a4 4 0 0 1 3.7-3.7l1.81-1.82a6 6 0 0 0-7.33 7.33Z" }],
+    [{ d: target }],
+  );
+  for (const t of [0.9999, 1]) {
+    const c = path2curve(plan.frame(t)[0]);
+    assert.equal(c.filter((s) => s[0] === "M").length, 2);
+    assert.doesNotMatch(plan.frame(t)[0], /NaN|Infinity/);
+    const extent = bounds(plan.frame(t)[0]);
+    near(extent.x, 10, 0.03);
+    near(extent.y, 10, 0.03);
+    near(extent.w, 12, 0.03);
+    near(extent.h, 12, 0.03);
+  }
+});
