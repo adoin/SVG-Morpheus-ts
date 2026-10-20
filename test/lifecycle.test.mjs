@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, test } from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
-import { SVGMorpheus, styleToNorm } from "../dist/index.js";
+import {
+  SVGMorpheus,
+  styleToNorm,
+  path2curve,
+  curvePathBBox,
+} from "../dist/index.js";
 let dom, frames, seq;
 beforeEach(() => {
   dom = new JSDOM(
@@ -183,6 +188,56 @@ test("repeating gradient changes replaces definitions rather than duplicating ID
   for (let i = 0; i < 10; i++) m.set(i % 2 ? "a" : "b");
   const ids = [...el.querySelectorAll("defs [id]")].map((e) => e.id);
   assert.equal(new Set(ids).size, ids.length);
+  valid(el);
+  m.destroy();
+});
+
+test("matched controller rotates without contraction while legacy remains selectable", () => {
+  const input =
+    '<g id="a" fill="none" stroke="currentColor"><path d="M2 12L22 12"/></g><g id="b" fill="none" stroke="currentColor"><path d="M12 2L12 22"/></g>';
+  for (const algorithm of ["matched", "legacy"]) {
+    const el = svg(input),
+      m = new SVGMorpheus(el, {
+        algorithm,
+        iconId: "a",
+        rotation: "none",
+        duration: 100,
+        reducedMotion: "never",
+      });
+    m.to("b");
+    tick(0);
+    tick(50);
+    const bounds = curvePathBBox(
+      path2curve(el.querySelector("g path").getAttribute("d")),
+    );
+    const diagonal = Math.hypot(bounds.w, bounds.h);
+    assert.ok(
+      Math.abs(diagonal - (algorithm === "matched" ? 20 : Math.sqrt(200))) <
+        0.001,
+    );
+    m.cancel();
+    valid(el);
+    m.destroy();
+  }
+});
+test("controller matches reordered painted paths and preserves their source positions", () => {
+  const el = svg(
+    '<g id="a"><path fill="red" d="M1 1h3v3h-3Z"/><path fill="blue" d="M18 1h3v3h-3Z"/></g><g id="b"><path fill="blue" d="M18 1h3v3h-3Z"/><path fill="red" d="M1 1h3v3h-3Z"/></g>',
+  );
+  const m = make(el);
+  m.to("b");
+  tick(0);
+  tick(50);
+  const paths = Array.from(el.querySelectorAll("g path"));
+  assert.ok(
+    Math.abs(curvePathBBox(path2curve(paths[0].getAttribute("d"))).x - 18) <
+      0.001,
+  );
+  assert.ok(
+    Math.abs(curvePathBBox(path2curve(paths[1].getAttribute("d"))).x - 1) <
+      0.001,
+  );
+  tick(100);
   valid(el);
   m.destroy();
 });

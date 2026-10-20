@@ -4,6 +4,8 @@ export type { EasingFunction, CurveSegment, CurveData, BoundingBox } from './cor
 
 // SVG Morpheus configuration options | SVG Morpheus 配置选项
 export interface SVGMorpheusOptions {
+  /** Matched cubic geometry by default; legacy retains index-based interpolation. */
+  algorithm?: 'matched' | 'legacy';
   /** Follow prefers-reduced-motion by default; 'always' switches instantly. */
   reducedMotion?: 'user' | 'always' | 'never';
   /** 
@@ -38,6 +40,7 @@ export interface SVGMorpheusOptions {
    * - 'random': Randomly choose clockwise or counterclockwise | 随机选择顺时针或逆时针
    * @default 'clock'
    */
+  /** Additional spin; matched geometry can still infer an intrinsic turn. */
   rotation?: 'clock' | 'counterclock' | 'none' | 'random';
 }
 
@@ -185,6 +188,7 @@ export interface ToMethodOptions {
    * - 'none': No rotation | 不旋转
    * - 'random': Random rotation direction | 随机旋转方向
    */
+  /** Additional spin; matched geometry can still infer an intrinsic turn. */
   rotation?: 'clock' | 'counterclock' | 'none' | 'random';
 }
 

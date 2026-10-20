@@ -1,3 +1,5 @@
+import { createMorphPlan } from "./morph-plan";
+import type { MorphPlan } from "./morph-plan";
 import { readIcon, parseTransform, transformCurve } from "./read-icon";
 import {
   styleNormCalc,
@@ -53,6 +55,8 @@ export class SVGMorpheus {
   private _rafid: AnimationFrameId | undefined;
   private _svgDoc: SVGSVGElement | null = null;
   private _destroyed = false;
+  private _algorithm: "matched" | "legacy" = "matched";
+  private _plan?: MorphPlan;
   private _loadTarget?: HTMLElement | SVGSVGElement;
   private _loadHandler?: EventListener;
   private _currentViewBox?: import("./types").ViewBoxInfo;
@@ -128,6 +132,9 @@ export class SVGMorpheus {
     if (!Number.isFinite(this._defDuration) || this._defDuration < 0)
       throw new Error("Invalid animation duration");
     this._reducedMotion = options.reducedMotion ?? "user";
+    this._algorithm = options.algorithm ?? "matched";
+    if (!["matched", "legacy"].includes(this._algorithm))
+      throw new Error("Invalid morph algorithm");
     this._defEasing = options.easing ?? "quad-in-out";
     if (
       !Object.prototype.hasOwnProperty.call(easings, this._defEasing) ||
@@ -346,6 +353,32 @@ export class SVGMorpheus {
         this._injectTransformedDefs(fromIcon, toIcon);
       }
 
+      this._plan = undefined;
+      if (
+        this._algorithm === "matched" &&
+        this._fromIconItems.length &&
+        this._toIconItems.length
+      ) {
+        const from = this._fromIconItems,
+          to = this._toIconItems;
+        const path = (item: IconItem) => ({
+          d: item.path,
+          allowReverse: (item.attrs.fill ?? item.style.fill) === "none",
+        });
+        const plan = createMorphPlan(from.map(path), to.map(path));
+        this._fromIconItems = plan.pairs.map((pair) =>
+          pair.fromIndex === null
+            ? { path: "M0 0l0 0", attrs: {}, style: {} }
+            : from[pair.fromIndex],
+        );
+        this._toIconItems = plan.pairs.map((pair) =>
+          pair.toIndex === null
+            ? { path: "M0 0l0 0", attrs: {}, style: {} }
+            : to[pair.toIndex],
+        );
+        this._plan = plan;
+      }
+
       for (i = 0, len = this._morphNodes.length; i < len; i++) {
         const morphNode = this._morphNodes[i];
         morphNode.fromIconItemIdx = i;
@@ -532,11 +565,15 @@ export class SVGMorpheus {
 
   private _updateAnimationProgress(progress: number): void {
     progress = easings[this._easing](progress);
+    const planned = this._plan?.frame(progress);
 
     let i: number, j: string, k: string, len: number;
     // Update path/attrs/transform
     for (i = 0, len = this._curIconItems.length; i < len; i++) {
-      if (this._fromIconItems[i].curve && this._toIconItems[i].curve) {
+      if (planned) {
+        this._curIconItems[i].path = planned[i];
+        this._curIconItems[i].curve = path2curve(planned[i]);
+      } else if (this._fromIconItems[i].curve && this._toIconItems[i].curve) {
         this._curIconItems[i].curve = curveCalc(
           this._fromIconItems[i].curve!,
           this._toIconItems[i].curve!,
@@ -600,6 +637,7 @@ export class SVGMorpheus {
 
   private _animationEnd(): void {
     this._rafid = undefined;
+    this._plan = undefined;
     // Remove synthetic balancing contours; keeping them caused residual outlines.
     this._toIconItems = this._toIconItems.slice(
       0,
@@ -712,7 +750,7 @@ export class SVGMorpheus {
       this._animationEnd();
     } else {
       for (const item of this._curIconItems) {
-        if (item.transStr) {
+        if (item.transStr && (item.trans?.rotate?.[0] ?? 0) % 360 !== 0) {
           item.path = transformCurve(item.path, parseTransform(item.transStr));
           item.curve = path2curve(item.path);
           item.trans = { rotate: [0, 0, 0] };
@@ -729,6 +767,7 @@ export class SVGMorpheus {
       this._toIconId = "";
     }
     this._startTime = undefined;
+    this._plan = undefined;
     return this;
   }
 

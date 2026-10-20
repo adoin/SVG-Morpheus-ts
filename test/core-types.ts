@@ -9,3 +9,10 @@ const d: string = path2string(
   curveCalc(shape, path2curve("M0 0L2 2"), easings.linear(box.cx)),
 );
 void d;
+
+import { createMorphPlan, springProgress } from "../dist/core.js";
+import type { MorphPlan, MorphPath } from "../dist/core.js";
+const inputs: MorphPath[] = [{ d: shape, allowReverse: false }];
+const plan: MorphPlan = createMorphPlan(inputs, inputs);
+const frame: string[] = plan.frame(springProgress(0.5));
+void frame;

@@ -1,4 +1,4 @@
-import { path2curve, path2string } from "./svg-path";
+import { path2curve, path2string, pathToAbsolute } from "./svg-path";
 import {
   extractDefsInfo,
   extractSvgRootAttributes,
@@ -17,20 +17,31 @@ const multiply = (a: Affine, b: Affine): Affine => [
   a[1] * b[4] + a[3] * b[5] + a[5],
 ];
 export function transformCurve(path: string, matrix: Affine): string {
-  return path2string(
-    path2curve(path).map(([command, ...values]: (string | number)[]) => {
-      const result: (string | number)[] = [command];
-      for (let i = 0; i < values.length; i += 2) {
-        const x = Number(values[i]),
-          y = Number(values[i + 1]);
-        result.push(
-          matrix[0] * x + matrix[2] * y + matrix[4],
-          matrix[1] * x + matrix[3] * y + matrix[5],
-        );
-      }
-      return result;
-    }),
-  );
+  const paths: (string | number)[][][] = [];
+  for (const segment of pathToAbsolute(path) as (string | number)[][]) {
+    if (segment[0] === "M" || !paths.length) paths.push([]);
+    paths[paths.length - 1].push(segment);
+  }
+  return paths
+    .map((path) => {
+      const closed = path[path.length - 1][0] === "Z";
+      const result = path2curve(path).map(
+        ([command, ...values]: (string | number)[]) => {
+          const output: (string | number)[] = [command];
+          for (let i = 0; i < values.length; i += 2) {
+            const x = Number(values[i]),
+              y = Number(values[i + 1]);
+            output.push(
+              matrix[0] * x + matrix[2] * y + matrix[4],
+              matrix[1] * x + matrix[3] * y + matrix[5],
+            );
+          }
+          return output;
+        },
+      );
+      return path2string(result) + (closed ? "Z" : "");
+    })
+    .join("");
 }
 export function parseTransform(value: string): Affine {
   let result = identity;

@@ -22,3 +22,6 @@ export type {
   EasingFunction,
   BoundingBox,
 } from "./core-types.js";
+
+export { createMorphPlan, springProgress } from "./morph-plan.js";
+export type { MorphPath, MorphPair, MorphPlan } from "./morph-plan.js";

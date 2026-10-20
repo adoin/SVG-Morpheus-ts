@@ -1,8 +1,8 @@
 // Main entry point for SVG Morpheus TypeScript version
 
 // Export the main SVGMorpheus class
-export { SVGMorpheus as default } from './svg-morpheus';
-export { SVGMorpheus } from './svg-morpheus';
+export { SVGMorpheus as default } from "./svg-morpheus";
+export { SVGMorpheus } from "./svg-morpheus";
 
 // Export all type definitions
 export type {
@@ -19,11 +19,11 @@ export type {
   Icon,
   MorphNode,
   BoundingBox,
-  CallbackFunction
-} from './types';
+  CallbackFunction,
+} from "./types";
 
 // Export easing functions object
-export { easings } from './easings';
+export { easings } from "./easings";
 
 // Export utility functions and SVG bundling functions
 export {
@@ -34,9 +34,9 @@ export {
   trans2string,
   curveCalc,
   clone,
-  bundleSvgs,             // 🆕 动态SVG合并，返回 Blob URL
-  bundleSvgsString        // 🆕 动态SVG合并，返回 SVG 字符串
-} from './helpers';
+  bundleSvgs, // 🆕 动态SVG合并，返回 Blob URL
+  bundleSvgsString, // 🆕 动态SVG合并，返回 SVG 字符串
+} from "./helpers";
 
 // Export path utilities (if needed)
 export {
@@ -44,5 +44,7 @@ export {
   pathToAbsolute,
   path2curve,
   path2string,
-  curvePathBBox
-} from './svg-path'; 
+  curvePathBBox,
+} from "./svg-path";
+export { createMorphPlan, springProgress } from "./morph-plan";
+export type { MorphPath, MorphPair, MorphPlan } from "./morph-plan";

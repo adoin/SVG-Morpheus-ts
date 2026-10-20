@@ -579,3 +579,35 @@ reducedMotion defaults to user and checks system preferences when an animation s
 Supports path, circle, ellipse, rect, polygon, polyline and line; nested group translate/scale/rotate/matrix/skew and inherited fill, stroke, opacity, caps, joins and fill rules. currentColor and CSS variables remain contextual. Inputs must be trusted SVG. Masks, clipping, filters, use references and nested SVG viewports are unsupported and rejected explicitly.
 
 In Vue, construct the instance in onMounted and call destroy in onBeforeUnmount. Use addIcon and to for changed icons instead of rebuilding the entire SVG.
+
+## Matched cubic morphing (1.4)
+
+SVGMorpheus defaults to algorithm: 'matched': globally assign paths and inner contours, align arc-length origins and directions, and separate translation, rotation, scale and residual deformation. Frames use exact Bézier subdivision to preserve curves and original boundaries. Sampling is used for matching and arc-length estimation, not for rendering a fixed-point polyline.
+
+```ts
+const morph = new SVGMorpheus(svgElement, {
+  algorithm: 'matched',
+  rotation: 'none',
+  duration: 500,
+})
+```
+
+rotation controls additional spin. rotation: 'none' disables extra turns; matched geometry can still infer the natural rotation between shapes. Use algorithm: 'legacy' for the previous index-based interpolation.
+
+Frameworks and custom renderers can use the DOM-free planner directly:
+
+```ts
+import { createMorphPlan, springProgress } from 'svg-morpheus-ts/core'
+
+const plan = createMorphPlan(
+  [{ d: 'M2 12L22 12', allowReverse: false }],
+  [{ d: 'M12 2L12 22', allowReverse: false }],
+)
+const paths = plan.frame(springProgress(0.5, 'snappy'))
+```
+
+createMorphPlan(from, to) accepts arrays of { d, closed?, allowReverse? }; d is a path string or curve array. pairs lists { fromIndex, toIndex } in target order, followed by disappearing source paths. A missing side is null. frame(progress) returns path strings in that same order. Reuse the plan rather than planning each frame. Inputs are not mutated and pairs is immutable.
+
+Open paths allow reversed alignment by default. Closed contours retain winding by default to preserve nonzero-fill holes; allowReverse: true opts into reversal. closed is inferred from each contour’s endpoints when omitted. Appearing or disappearing contours expand or contract around their local centers.
+
+springProgress(t, profile) provides smooth, snappy and bouncy profiles for normalized time. Pass its output to frame for a spring response, or provide progress from your own easing. The planner does not reconstruct distance fields or perform Boolean operations on arbitrary filled regions.

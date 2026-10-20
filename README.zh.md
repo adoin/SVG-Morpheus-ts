@@ -578,3 +578,35 @@ morph.destroy()
 支持 path、circle、ellipse、rect、polygon、polyline、line，支持嵌套分组的 translate / scale / rotate / matrix / skew 与继承的填充、描边、不透明度、端点、连接和填充规则。currentColor 与 CSS 变量保持为上下文值。输入为可信 SVG；蒙版、裁剪、滤镜、use 外部引用和嵌套 SVG 视口不在支持范围内，会明确拒绝。
 
 在 Vue 的 onMounted 中创建实例，在 onBeforeUnmount 中调用 destroy。更换图标使用 addIcon 与 to，无需重建整个 SVG。
+
+## 智能贝塞尔变形（1.4）
+
+`SVGMorpheus` 默认使用 `algorithm: 'matched'`：全局最小成本配对路径和内部轮廓，按弧长比较起点与方向，分离平移、旋转、缩放和剩余形变。中间帧使用精确贝塞尔细分，保留曲线与原有节点，不把 SVG 渲染成固定采样点折线。采样只用于匹配和弧长估计。
+
+```ts
+const morph = new SVGMorpheus(svgElement, {
+  algorithm: 'matched',
+  rotation: 'none',
+  duration: 500,
+})
+```
+
+`rotation` 控制额外旋转。`rotation: 'none'` 禁用额外转圈，但匹配算法仍可识别上下箭头之间的自然转动。需要原先按下标直接插值的行为时，使用 `algorithm: 'legacy'`。
+
+框架和自定义渲染器可以直接使用纯几何规划器，不创建 DOM 实例：
+
+```ts
+import { createMorphPlan, springProgress } from 'svg-morpheus-ts/core'
+
+const plan = createMorphPlan(
+  [{ d: 'M2 12L22 12', allowReverse: false }],
+  [{ d: 'M12 2L12 22', allowReverse: false }],
+)
+const paths = plan.frame(springProgress(0.5, 'snappy'))
+```
+
+`createMorphPlan(from, to)` 接受 `{ d, closed?, allowReverse? }[]`，其中 `d` 为 SVG path 字符串或曲线数组。`pairs` 按目标路径顺序列出 `{ fromIndex, toIndex }`，其后是消失的源路径；缺少的一端使用 null。`frame(progress)` 按同样顺序返回 path 字符串数组。创建规划后复用 frame，不要每帧重新规划。输入数组不会被修改，pairs 不可变。
+
+开放路径默认允许方向匹配；闭合轮廓默认保留方向，避免破坏非零填充规则的孔洞。`allowReverse: true` 可显式允许反向匹配。`closed` 缺省时从每个轮廓的端点推断。新增或消失的轮廓在自身局部中心展开或收拢。
+
+`springProgress(t, profile)` 提供 smooth、snappy、bouncy 三个配置，输入为归一化时间；将其输出交给 frame 可产生弹簧效果。直接传入原始进度也可以使用自己的缓动。该能力不执行距离场重建或任意填充区域的布尔运算。
