@@ -2,6 +2,7 @@
  * Opaque, same-color filled paths only. No geometric contour correspondence.
  */
 import { findDifferenceComponents } from "./fill-components.mjs";
+import { createStrokeRetractions } from "./stroke-retraction.mjs";
 export function createSharedFillPlan(
   from,
   to,
@@ -10,6 +11,7 @@ export function createSharedFillPlan(
     bounds = [0, 0, 32, 32],
     direction = [-1, 1],
     fillRule = "nonzero",
+    sourceGuides,
   } = {},
 ) {
   if (!/^[a-zA-Z][\w-]*$/.test(prefix ?? ""))
@@ -80,15 +82,21 @@ export function createSharedFillPlan(
         `<clipPath id="${prefix}-piece-${i}" clipPathUnits="userSpaceOnUse"><path d="${piece.clip}"/></clipPath>`,
     )
     .join("");
+  const strokes = sourceGuides
+    ? createStrokeRetractions(pieces, sourceGuides)
+    : undefined;
   return {
     shared,
     pieces: pieces.map(({ anchor, pixels }) => ({
       anchor: [...anchor],
       pixels,
     })),
+    strokes: strokes?.map(({ length, tip }) => ({ length, tip: [...tip] })),
     frame(progress, { highlight = false, motion = "retract" } = {}) {
-      if (!["retract", "fade"].includes(motion))
+      if (!["draw", "retract", "fade"].includes(motion))
         throw Error("Invalid difference motion");
+      if (motion === "draw" && !strokes)
+        throw Error("Drawing motion requires authored centerline guides");
       if (!Number.isFinite(progress)) throw Error("Invalid progress");
       const p = Math.max(0, Math.min(1, progress));
       if (!highlight && (p === 0 || p === 1))
@@ -110,10 +118,25 @@ export function createSharedFillPlan(
         })
         .join("");
       const source =
-        motion === "retract"
-          ? `<g data-source-only fill="${highlight ? "#e29428" : "currentColor"}">${retract}</g>`
-          : `<g data-source-only fill="${highlight ? "#e29428" : "currentColor"}" opacity="${1 - p}" mask="url(#${prefix}-not-target)">${a}</g>`;
-      return `<defs>${definitions}${motion === "retract" ? pieceDefs : ""}<clipPath id="${prefix}-reveal" clipPathUnits="userSpaceOnUse"><polygon points="${points}"/></clipPath></defs><g fill="${highlight ? "#15956b" : "currentColor"}">${shared}</g>${source}<g data-target-only fill="${highlight ? "#3569ed" : "currentColor"}" mask="url(#${prefix}-not-source)" clip-path="url(#${prefix}-reveal)">${b}</g>`;
+        motion === "draw"
+          ? `<g data-source-only fill="${highlight ? "#e29428" : "currentColor"}">${strokes.map((stroke, i) => `<g data-draw-piece="${i}" clip-path="url(#${prefix}-piece-${i})"><g mask="url(#${prefix}-draw-${i})"><g mask="url(#${prefix}-not-target)">${a}</g></g></g>`).join("")}</g>`
+          : motion === "retract"
+            ? `<g data-source-only fill="${highlight ? "#e29428" : "currentColor"}">${retract}</g>`
+            : `<g data-source-only fill="${highlight ? "#e29428" : "currentColor"}" opacity="${1 - p}" mask="url(#${prefix}-not-target)">${a}</g>`;
+      const drawDefs =
+        motion === "draw"
+          ? strokes
+              .map((stroke, i) =>
+                mask(
+                  `draw-${i}`,
+                  p === 1
+                    ? ""
+                    : `<path data-centerline="${i}" d="${stroke.d}" fill="none" stroke="white" stroke-width="${stroke.width}" stroke-linecap="butt" stroke-dasharray="${stroke.length * (1 - p)} ${stroke.length + 1}" stroke-dashoffset="${-stroke.length * p}"/>`,
+                ),
+              )
+              .join("")
+          : "";
+      return `<defs>${definitions}${motion !== "fade" ? pieceDefs : ""}${drawDefs}<clipPath id="${prefix}-reveal" clipPathUnits="userSpaceOnUse"><polygon points="${points}"/></clipPath></defs><g fill="${highlight ? "#15956b" : "currentColor"}">${shared}</g>${source}<g data-target-only fill="${highlight ? "#3569ed" : "currentColor"}" mask="url(#${prefix}-not-source)" clip-path="url(#${prefix}-reveal)">${b}</g>`;
     },
   };
 }

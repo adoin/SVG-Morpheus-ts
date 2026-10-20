@@ -139,7 +139,14 @@ export function findDifferenceComponents(
         }
     }
     if (parts.length >= 256) throw Error("Too many difference components");
-    parts.push({ anchor: anchor ?? fallback, pixels: queue.length });
+    const stride = Math.max(1, Math.floor(queue.length / 192));
+    const samples = queue
+      .filter((_, i) => i % stride === 0)
+      .map((k) => [
+        x + ((k % n) + 0.5) * dx,
+        y + (Math.floor(k / n) + 0.5) * dy,
+      ]);
+    parts.push({ anchor: anchor ?? fallback, pixels: queue.length, samples });
   }
   // Numeric differences between independently normalized arcs can leave subpixel islands.
   // Assign these to the closest substantial piece instead of spawning dozens of animations.

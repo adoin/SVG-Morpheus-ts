@@ -1,6 +1,6 @@
 import SVGMorpheus, { easings, springProgress } from "../src/index.ts";
 import { analyzeSharedBoundaries } from "../research/shared-boundaries.mjs";
-import { eyePair } from "../research/fixtures.mjs";
+import { eyePair, eyeCenterlines } from "../research/fixtures.mjs";
 import { createSharedStrokePlan } from "../research/shared-stroke.mjs";
 import { createSharedFillPlan } from "../research/shared-fill.mjs";
 import pkg from "../package.json";
@@ -8,13 +8,14 @@ import pkg from "../package.json";
 const english = {
   eyeTitle: "Eye transition: keep the shared region fixed",
   eyeHint:
-    "Shared areas stay fixed. Each disappearing piece contracts toward its own connection tip, with full opacity. Target-only areas reveal diagonally. Switch to the previous fade to compare, or scrub individual frames.",
+    "The disappearing arcs retract along their own centerlines, preserving their radius, width and original vector edges. Shared areas stay fixed. Scrub to see the moving endpoint, or compare the previous scaling and fading experiments.",
   eyeActual: "Actual appearance",
   eyeRegions: "Green stays · Orange retracts · Blue reveals",
   eyeRetract: "Contract toward connection tips",
+  eyeDraw: "Retract along the stroke direction",
   eyeFade: "Fade (previous approach)",
   eyeLimit:
-    "Research splits differences into sampled connected pieces, then scales each vector-masked piece toward a connection tip. This contracts geometry rather than fading it, but is not arc-length contour retraction. Opaque same-color fills only; not connected to production core.",
+    "These filled icons do not store their construction strokes. This example supplies four authored centerline guides, projects the difference pieces onto them, and trims the visible length. Centerline inference from arbitrary filled SVG remains unsolved. Not connected to production core.",
   strokeTitle: "Keep AB, animate only BC",
   strokeHint:
     "Green shared geometry stays fixed while the blue difference retracts or extends along its original curve. Supports lines, curves and reversed paths. Open-stroke research only; filled regions and holes are not supported.",
@@ -294,9 +295,11 @@ document.querySelector("#stroke-play").addEventListener("click", () => {
 resetStroke();
 const eyePlan = createSharedFillPlan(eyePair.from, eyePair.to, {
   prefix: "eye-actual",
+  sourceGuides: eyeCenterlines,
 });
 const regionPlan = createSharedFillPlan(eyePair.from, eyePair.to, {
   prefix: "eye-regions",
+  sourceGuides: eyeCenterlines,
 });
 const eyeSlider = document.querySelector("#eye-progress");
 let eyeProgress = 0,

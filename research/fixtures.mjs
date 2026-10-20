@@ -11,3 +11,12 @@ export const eyePair = {
   ],
   viewBox: "0 0 32 32",
 };
+
+// Authored construction guides for this experiment, not inferred from filled SVG.
+// They only reveal/retract the original vector fill; they do not replace its outline.
+export const eyeCenterlines = [
+  { d: "M16 6C22 6 27.9 10.1 29.935 16", width: 4 },
+  { d: "M16 26C10 26 4.1 21.9 2.065 16", width: 4 },
+  { d: "M16 11A5 5 0 0 1 21 16", width: 4 },
+  { d: "M16 21A5 5 0 0 1 11 16", width: 4 },
+];

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 import { createSharedFillPlan as plan } from "./shared-fill.mjs";
-import { eyePair } from "./fixtures.mjs";
+import { eyePair, eyeCenterlines } from "./fixtures.mjs";
 test("filled eye common geometry is invariant and difference layers alone change", () => {
   const p = plan(eyePair.from, eyePair.to, { prefix: "eye" });
   for (const t of [0.01, 0.25, 0.5, 0.75, 0.99]) {
@@ -59,6 +59,46 @@ test("endpoints render exact original paths, including compound holes", () => {
       paths,
     );
     assert.equal(doc.querySelector("mask"), null);
+  }
+});
+test("authored stroke guides shorten visible arc length without scaling or fading artwork", () => {
+  const p = plan(eyePair.from, eyePair.to, {
+    prefix: "guided",
+    sourceGuides: eyeCenterlines,
+  });
+  assert.equal(p.strokes.length, 4);
+  for (const t of [0.1, 0.5, 0.9]) {
+    const doc = new JSDOM(`<svg>${p.frame(t, { motion: "draw" })}</svg>`).window
+      .document;
+    const moving = doc.querySelector("[data-source-only]");
+    assert.equal(moving.querySelector("[transform]"), null);
+    assert.equal(moving.hasAttribute("opacity"), false);
+    [...doc.querySelectorAll("[data-centerline]")].forEach((el, i) => {
+      const visible = Number(el.getAttribute("stroke-dasharray").split(" ")[0]);
+      assert.ok(Math.abs(visible - p.strokes[i].length * (1 - t)) < 1e-9);
+      assert.equal(el.getAttribute("stroke-width"), "4");
+    });
+    assert.equal(
+      doc.querySelector("[data-shared-fill]").outerHTML,
+      new JSDOM(
+        `<svg>${p.frame(0.5, { motion: "draw" })}</svg>`,
+      ).window.document.querySelector("[data-shared-fill]").outerHTML,
+    );
+  }
+  assert.throws(
+    () =>
+      plan(eyePair.from, eyePair.to, { prefix: "plain" }).frame(0.5, {
+        motion: "draw",
+      }),
+    /requires authored/,
+  );
+  for (const t of [0, 1]) {
+    const doc = new JSDOM(`<svg>${p.frame(t, { motion: "draw" })}</svg>`).window
+      .document;
+    assert.deepEqual(
+      [...doc.querySelectorAll("path")].map((el) => el.getAttribute("d")),
+      t === 0 ? eyePair.from : eyePair.to,
+    );
   }
 });
 test("IDs are isolated and unsafe input rejected", () => {
