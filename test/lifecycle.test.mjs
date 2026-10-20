@@ -46,12 +46,23 @@ const make = (el) =>
   new SVGMorpheus(el, { iconId: "a", duration: 100, rotation: "none" });
 const valid = (el) =>
   assert.doesNotMatch(el.innerHTML, /[\u0000]|NaN|Infinity|undefined/);
+const effectiveOpacity = (node) => {
+  let opacity = 1;
+  while (node && node.localName !== "svg") {
+    opacity *= Number(node.getAttribute("opacity") ?? 1);
+    node = node.parentElement;
+  }
+  return opacity;
+};
 
 test("multicolor paths interpolate fill, stroke and alpha independently", () => {
-  const el = svg('<g id="a"><path fill="#ff0000" stroke="#00ff00" fill-opacity="0.2" d="M1 1h3v3h-3Z"/><path fill="#0000ff" d="M18 1h3v3h-3Z"/></g><g id="b"><path fill="#ffffff" d="M18 1h3v3h-3Z"/><path fill="#0000ff" stroke="#ff0000" fill-opacity="0.8" d="M1 1h3v3h-3Z"/></g>');
+  const el = svg(
+    '<g id="a"><path fill="#ff0000" stroke="#00ff00" fill-opacity="0.2" d="M1 1h3v3h-3Z"/><path fill="#0000ff" d="M18 1h3v3h-3Z"/></g><g id="b"><path fill="#ffffff" d="M18 1h3v3h-3Z"/><path fill="#0000ff" stroke="#ff0000" fill-opacity="0.8" d="M1 1h3v3h-3Z"/></g>',
+  );
   const m = make(el);
   m.to("b", { easing: "linear" });
-  tick(0); tick(50);
+  tick(0);
+  tick(50);
   const [right, left] = el.querySelectorAll("g path");
   assert.equal(right.getAttribute("fill"), "rgba(128,128,255,1)");
   assert.equal(left.getAttribute("fill"), "rgba(128,0,128,1)");
@@ -63,45 +74,112 @@ test("multicolor paths interpolate fill, stroke and alpha independently", () => 
 });
 
 test("RGBA colors interpolate alpha without mixing unrelated paths", () => {
-  const [a, b] = styleToNorm({ fill: "rgba(255,0,0,0.2)" }, { fill: "rgba(0,0,255,0.8)" });
-  assert.deepEqual(styleNormCalc(a, b, 0.5).fill, { r: 127.5, g: 0, b: 127.5, opacity: 0.5 });
+  const [a, b] = styleToNorm(
+    { fill: "rgba(255,0,0,0.2)" },
+    { fill: "rgba(0,0,255,0.8)" },
+  );
+  assert.deepEqual(styleNormCalc(a, b, 0.5).fill, {
+    r: 127.5,
+    g: 0,
+    b: 127.5,
+    opacity: 0.5,
+  });
 });
 
 test("nested paint overrides and opacity multiplication are retained for separate paths", () => {
-  const el = svg('<g id="a" fill="red" opacity="0.5"><g fill="blue" opacity="0.4"><path d="M1 1h3v3h-3Z"/></g><path fill="green" d="M18 1h3v3h-3Z"/></g>');
+  const el = svg(
+    '<g id="a" fill="red" opacity="0.5"><g fill="blue" opacity="0.4"><path d="M1 1h3v3h-3Z"/></g><path fill="green" d="M18 1h3v3h-3Z"/></g>',
+  );
   const m = make(el);
   const [blue, green] = el.querySelectorAll("g path");
   assert.equal(blue.getAttribute("fill"), "rgba(0,0,255,1)");
-  assert.equal(Number(blue.getAttribute("opacity")), 0.2);
+  assert.equal(effectiveOpacity(blue), 0.2);
   assert.equal(green.getAttribute("fill"), "rgba(0,128,0,1)");
-  assert.equal(Number(green.getAttribute("opacity")), 0.5);
+  assert.equal(effectiveOpacity(green), 0.5);
   m.destroy();
 });
 
 test("gradient paint is a discrete switch, not stop interpolation", () => {
-  const [a, b] = styleToNorm({ fill: "url(#red-blue)" }, { fill: "url(#green-yellow)" });
+  const [a, b] = styleToNorm(
+    { fill: "url(#red-blue)" },
+    { fill: "url(#green-yellow)" },
+  );
   assert.equal(styleNormCalc(a, b, 0.49).fill, "url(#red-blue)");
   assert.equal(styleNormCalc(a, b, 0.5).fill, "url(#green-yellow)");
 });
 
-test("KNOWN LIMITATION: eight-digit hexadecimal alpha should be retained", { todo: "Color parser does not support #RRGGBBAA" }, () => {
+test("controller interpolates inherited linear-gradient stops and coordinates", () => {
+  const el = svg(
+    '<defs><linearGradient id="base"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient><linearGradient id="first" href="#base"/><linearGradient id="second" x2="0%" y2="100%"><stop offset="0" stop-color="blue"/><stop offset="1" stop-color="red"/></linearGradient></defs><g id="a"><path fill="url(#first)" d="M0 0H20V20Z"/></g><g id="b"><path fill="url(#second)" d="M0 0H20V20Z"/></g>',
+  );
+  const m = make(el);
+  m.to("b", { easing: "linear" });
+  tick(0);
+  tick(50);
+  const path = el.querySelector("g path");
+  const id = path.getAttribute("fill").slice(5, -1);
+  const g = el.querySelector(`[id="${id}"]`);
+  assert.equal(g.getAttribute("x2"), "0.5");
+  assert.equal(g.getAttribute("y2"), "0.5");
+  assert.equal(
+    g.querySelector("stop").getAttribute("stop-color"),
+    "rgba(128,0,128,1)",
+  );
+  const before = path.getAttribute("fill");
+  m.cancel();
+  m.to("a", { easing: "linear" });
+  tick(60);
+  const currentId = el
+    .querySelector("g path")
+    .getAttribute("fill")
+    .slice(5, -1);
+  assert.equal(
+    el.querySelector(`[id="${currentId}"] stop`).getAttribute("stop-color"),
+    "rgba(128,0,128,1)",
+  );
+  tick(160);
+  valid(el);
+  m.destroy();
+});
+
+test("controller preserves real group compositing throughout an opacity transition", () => {
+  const el = svg(
+    '<g id="a" opacity="0.5"><path fill="red" d="M0 0H20V20Z"/><path fill="blue" d="M0 0H20V20Z"/></g><g id="b" opacity="0.9"><path fill="red" d="M0 0H20V20Z"/><path fill="blue" d="M0 0H20V20Z"/></g>',
+  );
+  const m = make(el);
+  m.to("b", { easing: "linear" });
+  tick(0);
+  tick(50);
+  const [a, b] = el.querySelectorAll("g path");
+  assert.equal(a.parentElement.parentElement, b.parentElement.parentElement);
+  assert.equal(effectiveOpacity(a.parentElement.parentElement), 0.7);
+  tick(100);
+  assert.equal(effectiveOpacity(el.querySelector("g path")), 0.9);
+  m.destroy();
+});
+
+test("eight-digit hexadecimal alpha is retained", () => {
   const [a] = styleToNorm({ fill: "#ff000080" }, { fill: "blue" });
   assert.equal(a.fill.r, 255);
   assert.ok(Math.abs(a.fill.opacity - 128 / 255) < 0.001);
 });
 
-test("KNOWN LIMITATION: modern CSS space-separated RGB should be parsed", { todo: "Color parser only accepts legacy comma syntax" }, () => {
+test("modern CSS space-separated RGB is parsed", () => {
   const [a] = styleToNorm({ fill: "rgb(255 0 0 / 50%)" }, { fill: "blue" });
   assert.equal(a.fill.r, 255);
   assert.equal(a.fill.opacity, 0.5);
 });
 
-test("KNOWN LIMITATION: overlapping group opacity requires group compositing", { todo: "Flattening group opacity into each path changes overlap compositing" }, () => {
-  const el = svg('<g id="a" opacity="0.5"><path fill="red" d="M0 0h10v10H0Z"/><path fill="blue" d="M0 0h10v10H0Z"/></g>');
+test("overlapping paths retain a shared group opacity", () => {
+  const el = svg(
+    '<g id="a" opacity="0.5"><path fill="red" d="M0 0h10v10H0Z"/><path fill="blue" d="M0 0h10v10H0Z"/></g>',
+  );
   const m = make(el);
   // Two opaque overlapping children in a 0.5-opacity group must remain alpha 0.5.
-  const [a, b] = [...el.querySelectorAll("g path")].map(p => Number(p.getAttribute("opacity")));
-  assert.equal(a + b * (1 - a), 0.5);
+  const [a, b] = [...el.querySelectorAll("g path")];
+  assert.equal(a.parentElement.parentElement, b.parentElement.parentElement);
+  assert.equal(effectiveOpacity(a.parentElement.parentElement), 0.5);
+  assert.equal(Number(a.getAttribute("opacity")), 1);
   m.destroy();
 });
 test("zero duration commits synchronously, invalid targets do not cancel a running transition", () => {

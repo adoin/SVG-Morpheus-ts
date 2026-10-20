@@ -5,6 +5,8 @@ import {
   extractViewBoxInfo,
 } from "./helpers";
 import type { Icon, IconItem, StyleAttributes } from "./types";
+import type { Gradient, Paint, OpacityGroup } from "./paint";
+import { parseColor, colorString, transformPaint } from "./paint";
 
 export type Affine = [number, number, number, number, number, number];
 const identity: Affine = [1, 0, 0, 1, 0, 0];
@@ -166,11 +168,132 @@ export function readIcon(
   )
     throw new Error("Invalid icon viewBox");
   const items: IconItem[] = [];
+  let groupSequence = 0;
+  const paint = (
+    value: string | undefined,
+    seen = new Set<string>(),
+  ): Paint | undefined => {
+    const id =
+      value && /^url\(\s*["']?#([^\s)"']+)["']?\s*\)$/.exec(value)?.[1];
+    if (!id) {
+      const color = value && parseColor(value);
+      return color ? colorString(color) : value;
+    }
+    if (seen.has(id)) throw new Error("Cyclic SVG gradient reference");
+    seen.add(id);
+    const gradient = [
+      ...element.querySelectorAll("[id]"),
+      ...root.querySelectorAll("[id]"),
+    ].find((n) => n.id === id) as SVGElement | undefined;
+    if (
+      !gradient ||
+      !["linearGradient", "radialGradient"].includes(gradient.localName)
+    )
+      return value;
+    const href =
+      gradient.getAttribute("href") || gradient.getAttribute("xlink:href");
+    const base = href ? paint(`url(${href})`, seen) : undefined;
+    const inherited = typeof base === "object" ? base : undefined;
+    const attributes = { ...inherited?.attributes };
+    for (const name of [
+      "x1",
+      "y1",
+      "x2",
+      "y2",
+      "cx",
+      "cy",
+      "r",
+      "fx",
+      "fy",
+      "fr",
+      "gradientUnits",
+      "spreadMethod",
+      "gradientTransform",
+    ]) {
+      const v = gradient.getAttribute(name);
+      if (v !== null) attributes[name] = v;
+    }
+    attributes.gradientTransform = `matrix(${parseTransform(attributes.gradientTransform || "").join(" ")})`;
+    if (attributes.gradientUnits === "userSpaceOnUse") {
+      const [x, y, w, h] = parsedViewBox!.values;
+      for (const key of [
+        "x1",
+        "y1",
+        "x2",
+        "y2",
+        "cx",
+        "cy",
+        "r",
+        "fx",
+        "fy",
+        "fr",
+      ]) {
+        const value = attributes[key];
+        if (value?.endsWith("%")) {
+          const size = ["x1", "x2", "cx", "fx"].includes(key)
+            ? w
+            : ["y1", "y2", "cy", "fy"].includes(key)
+              ? h
+              : Math.hypot(w, h) / Math.SQRT2;
+          const start = ["x1", "x2", "cx", "fx"].includes(key)
+            ? x
+            : ["y1", "y2", "cy", "fy"].includes(key)
+              ? y
+              : 0;
+          attributes[key] = String(start + (parseFloat(value) * size) / 100);
+        }
+      }
+      const radial = gradient.localName === "radialGradient";
+      for (const [key, value] of Object.entries(
+        radial
+          ? {
+              cx: x + w / 2,
+              cy: y + h / 2,
+              r: Math.hypot(w, h) / Math.SQRT2 / 2,
+            }
+          : { x1: x, y1: y, x2: x + w, y2: y },
+      ))
+        attributes[key] ??= String(value);
+    }
+    const stops = [...gradient.children]
+      .filter((n) => n.localName === "stop")
+      .map((n) => {
+        const stop = n as SVGElement,
+          offset = stop.getAttribute("offset") || "0";
+        return {
+          offset: Math.max(
+            0,
+            Math.min(1, parseFloat(offset) / (offset.endsWith("%") ? 100 : 1)),
+          ),
+          color:
+            stop.style.getPropertyValue("stop-color") ||
+            stop.getAttribute("stop-color") ||
+            "black",
+          opacity: parseFloat(
+            stop.style.getPropertyValue("stop-opacity") ||
+              stop.getAttribute("stop-opacity") ||
+              "1",
+          ),
+        };
+      });
+    let previous = 0;
+    for (const stop of stops) {
+      stop.offset = Math.max(previous, stop.offset);
+      previous = stop.offset;
+    }
+    return {
+      type: gradient.localName as Gradient["type"],
+      attributes,
+      stops: stops.length
+        ? stops
+        : (inherited?.stops ?? [{ offset: 0, color: "transparent" }]),
+    };
+  };
   const visit = (
     node: SVGElement,
     inherited: StyleAttributes,
     parent: Affine,
-    opacity: number,
+    groups: OpacityGroup[],
   ) => {
     if (["defs", "title", "desc", "metadata"].includes(node.localName)) return;
     if (["mask", "clip-path", "filter"].some((key) => node.hasAttribute(key)))
@@ -182,10 +305,8 @@ export function readIcon(
     }
     if ((node.style.display || node.getAttribute("display")) === "none") return;
     const localOpacity = node.style.opacity || node.getAttribute("opacity");
-    const cumulativeOpacity =
-      opacity *
-      (localOpacity === null || localOpacity === "" ? 1 : Number(localOpacity));
-    attrs.opacity = String(cumulativeOpacity);
+    attrs.opacity =
+      localOpacity === null || localOpacity === "" ? "1" : localOpacity;
     const matrix = multiply(
       parent,
       parseTransform(node.getAttribute("transform") || ""),
@@ -193,8 +314,16 @@ export function readIcon(
     if (node.localName === "svg" && node !== element)
       throw new Error("Nested SVG viewports are not supported");
     if (["g", "svg", "a"].includes(node.localName)) {
+      const nextGroups =
+        Number(attrs.opacity) === 1
+          ? groups
+          : [
+              ...groups,
+              { id: String(groupSequence++), opacity: Number(attrs.opacity) },
+            ];
+      delete attrs.opacity;
       for (const child of Array.from(node.children))
-        visit(child as SVGElement, attrs, matrix, cumulativeOpacity);
+        visit(child as SVGElement, attrs, matrix, nextGroups);
     } else {
       const d = geometry(node);
       if (d) {
@@ -202,7 +331,17 @@ export function readIcon(
           parseFloat(attrs["stroke-width"] || "1") *
             Math.sqrt(Math.abs(matrix[0] * matrix[3] - matrix[1] * matrix[2])),
         );
-        items.push({ path: transformCurve(d, matrix), attrs, style: {} });
+        items.push({
+          path: transformCurve(d, matrix),
+          attrs,
+          style: {},
+          paint: {
+            attributes: { ...attrs } as Record<string, string>,
+            fill: transformPaint(paint(attrs.fill), matrix),
+            stroke: transformPaint(paint(attrs.stroke), matrix),
+            groups,
+          },
+        });
       }
     }
   };
@@ -216,14 +355,7 @@ export function readIcon(
     const value = root.style.getPropertyValue(key) || root.getAttribute(key);
     if (value !== null && value !== "") defaults[key] = value;
   }
-  visit(
-    element,
-    defaults,
-    identity,
-    element === root
-      ? 1
-      : Number(root.style.opacity || root.getAttribute("opacity") || 1),
-  );
+  visit(element, defaults, identity, []);
   if (!items.length)
     throw new Error(`Icon "${id}" contains no supported geometry`);
   return {

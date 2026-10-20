@@ -1,7 +1,7 @@
 {
   "name": "svg-morpheus-ts",
   "prettyName": "SVG Morpheus",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -48,7 +48,7 @@
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "type-check": "tsc --noEmit",
-    "test": "pnpm build && node --test test/core.test.mjs test/lifecycle.test.mjs test/matching.test.mjs && pnpm test:types",
+    "test": "pnpm build && node --test test/core.test.mjs test/lifecycle.test.mjs test/matching.test.mjs test/paint.test.mjs && pnpm test:types",
     "test:types": "tsc --noEmit --strict --moduleResolution NodeNext --module NodeNext --target ES2020 --lib ES2020 --types node test/core-types.ts"
   },
   "engines": {

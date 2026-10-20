@@ -24,11 +24,12 @@ export const cancelAnimFrame = (id: number): void => {
 };
 
 import { NormalizedStyle, RGBColor, StyleAttributes, Transform, CurveData } from './types';
+import { parseColor } from './paint';
 
 // Calculate style
 export function styleNormCalc(styleNormFrom: NormalizedStyle, styleNormTo: NormalizedStyle, progress: number): NormalizedStyle {
   const styleNorm: NormalizedStyle = {};
-  
+
   for (const key in styleNormFrom) {
     const i = key as keyof NormalizedStyle;
     switch (i) {
@@ -37,7 +38,7 @@ export function styleNormCalc(styleNormFrom: NormalizedStyle, styleNormTo: Norma
         if (styleNormFrom[i] && styleNormTo[i]) {
           const fromValue = styleNormFrom[i];
           const toValue = styleNormTo[i];
-          
+
           // 检测是否为渐变引用（字符串值）
           if (typeof fromValue === 'string' || typeof toValue === 'string') {
             // 对于渐变引用，根据进度选择源值或目标值
@@ -75,7 +76,7 @@ export function styleNormCalc(styleNormFrom: NormalizedStyle, styleNormTo: Norma
 
 export function styleNormToString(styleNorm: NormalizedStyle): StyleAttributes {
   const style: StyleAttributes = {};
-  
+
   for (const key in styleNorm) {
     const i = key as keyof NormalizedStyle;
     switch (i) {
@@ -112,12 +113,12 @@ export function styleNormToString(styleNorm: NormalizedStyle): StyleAttributes {
 
 export function styleToNorm(styleFrom: StyleAttributes, styleTo: StyleAttributes): [NormalizedStyle, NormalizedStyle] {
   const styleNorm: [NormalizedStyle, NormalizedStyle] = [{}, {}];
-  
+
   // 检测是否为渐变引用
   const isGradientReference = (value: string): boolean => {
     return /^(?:url\(|var\(|currentcolor$|none$|inherit$|context-fill$|context-stroke$)/i.test(value.trim());
   };
-  
+
   for (const key in styleFrom) {
     const i = key as keyof StyleAttributes;
     switch(i) {
@@ -153,7 +154,7 @@ export function styleToNorm(styleFrom: StyleAttributes, styleTo: StyleAttributes
         break;
     }
   }
-  
+
   for (const key in styleTo) {
     const i = key as keyof StyleAttributes;
     switch(i) {
@@ -244,7 +245,7 @@ export function curveCalc(curveFrom: CurveData, curveTo: CurveData, progress: nu
   const curve: CurveData = [];
   for (let i = 0, len1 = curveFrom.length; i < len1; i++) {
     curve.push([curveFrom[i][0]]);
-    
+
     // 检查 curveTo[i] 是否存在
     if (!curveTo[i]) {
       // 如果 curveTo[i] 不存在，使用 curveFrom[i] 的值
@@ -253,15 +254,15 @@ export function curveCalc(curveFrom: CurveData, curveTo: CurveData, progress: nu
       }
       continue;
     }
-    
+
     for (let j = 1, len2 = curveFrom[i].length; j < len2; j++) {
       const fromVal = curveFrom[i][j] as number;
-      
+
       // 检查 curveTo[i][j] 是否存在
-      const toVal = (curveTo[i] && curveTo[i][j] !== undefined) ? 
-        curveTo[i][j] as number : 
+      const toVal = (curveTo[i] && curveTo[i][j] !== undefined) ?
+        curveTo[i][j] as number :
         fromVal; // 如果不存在，使用 fromVal 作为默认值
-        
+
       curve[i].push(fromVal + (toVal - fromVal) * progress);
     }
   }
@@ -352,7 +353,7 @@ const hsb2rgb = function (h: number | HSBColor, s?: number, v?: number, o?: numb
     o = h.o;
     h = h.h;
   }
-  
+
   const hue = (h as number) * 360;
   let R: number, G: number, B: number, X: number, C: number;
   const normalizedHue = (hue % 360) / 60;
@@ -375,17 +376,17 @@ const hsl2rgb = function (h: number | HSLColor, s?: number, l?: number, o?: numb
     o = h.o;
     h = h.h;
   }
-  
+
   let hue = h as number;
   let saturation = s as number;
   let lightness = l as number;
-  
+
   if (hue > 1 || saturation > 1 || lightness > 1) {
     hue /= 360;
     saturation /= 100;
     lightness /= 100;
   }
-  
+
   hue *= 360;
   let R: number, G: number, B: number, X: number, C: number;
   const normalizedHue = (hue % 360) / 60;
@@ -406,22 +407,24 @@ interface RGBColorWithError extends RGBColor {
 
 // Parses color string as RGB object
 const getRGB = function (colour: string): RGBColorWithError {
+  const parsed = parseColor(colour);
+  if (parsed) return parsed;
   if (!colour || !!((colour = String(colour)).indexOf("-") + 1)) {
     return {r: -1, g: -1, b: -1, opacity: -1, error: 1};
   }
   if (colour === "none") {
     return {r: -1, g: -1, b: -1, opacity: -1};
   }
-  
+
   if (!((hsrg as any)[(has as any)](colour.toLowerCase().substring(0, 2)) || colour.charAt(0) === "#")) {
     const hexColor = toHex(colour);
     colour = hexColor || '';
   }
-  
+
   if (!colour) {
     return {r: -1, g: -1, b: -1, opacity: -1, error: 1};
   }
-  
+
   let red: number = 0;
   let green: number = 0;
   let blue: number = 0;
@@ -429,7 +432,7 @@ const getRGB = function (colour: string): RGBColorWithError {
   let t: string;
   let values: string[];
   const rgb = colour.match(colourRegExp);
-  
+
   if (rgb) {
     if (rgb[2]) {
       blue = parseInt(rgb[2].substring(5), 16);
@@ -490,12 +493,12 @@ const getRGB = function (colour: string): RGBColorWithError {
       }
       return hsl2rgb(red, green, blue, opacity);
     }
-    
+
     red = Math.min(Math.round(red), 255);
     green = Math.min(Math.round(green), 255);
     blue = Math.min(Math.round(blue), 255);
     opacity = Math.min(Math.max(opacity, 0), 1);
-    
+
     const result: RGBColorWithError = {r: red, g: green, b: blue, opacity: isFinite(opacity) ? opacity : 1};
     return result;
   }
@@ -509,14 +512,14 @@ const getRGB = function (colour: string): RGBColorWithError {
  * @returns Promise<string> 合并后的 SVG 字符串
  */
 async function createBundledSvgString(
-  svgMap: Record<string, string>, 
+  svgMap: Record<string, string>,
   svgAttributes?: Record<string, string | number>
 ): Promise<string> {
   const svgGroups: string[] = [];
-  
+
   for (const [id, svgSource] of Object.entries(svgMap)) {
     let svgContent: string;
-    
+
     // 判断是 SVG 代码还是路径
     if (isSvgContent(svgSource)) {
       // 直接是 SVG 代码
@@ -535,14 +538,14 @@ async function createBundledSvgString(
         continue;
       }
     }
-    
+
     // 提取原始SVG的ViewBox信息
     const originalViewBox = extractViewBoxInfo(svgContent);
     const originalDefs = extractDefsInfo(svgContent);
     // 新增：提取SVG根属性（包括fill）
     const rootAttributes = extractSvgRootAttributes(svgContent);
     const svgRootFill = rootAttributes['fill'];
-    
+
     // 提取 SVG 内容（去除外层 svg 标签）
     let innerContent = extractSvgInnerContent(svgContent);
 
@@ -568,7 +571,7 @@ async function createBundledSvgString(
         });
       });
     }
-    
+
     // 构建g标签的属性，保留ViewBox和其他重要信息
     let groupAttributes = `id="${id}"`;
     if (originalViewBox) {
@@ -577,31 +580,31 @@ async function createBundledSvgString(
     if (Object.keys(originalDefs.gradients).length > 0 || Object.keys(originalDefs.patterns).length > 0) {
       groupAttributes += ` data-has-defs="true"`;
     }
-    
+
     // 用 g 标签包裹，设置 id 和保留的属性
     const groupContent = `<g ${groupAttributes}>${innerContent}</g>`;
     svgGroups.push(groupContent);
   }
-  
+
   // 构建 SVG 属性字符串
   const defaultAttributes = {
     xmlns: 'http://www.w3.org/2000/svg',
     style: 'display:none;'
   };
-  
+
   // 合并默认属性和用户自定义属性
   const finalAttributes = { ...defaultAttributes, ...svgAttributes };
-  
+
   // 将属性对象转换为字符串
   const attributesString = Object.entries(finalAttributes)
     .map(([key, value]) => `${key}="${value}"`)
     .join(' ');
-  
+
   // 合并所有 g 标签到一个 SVG 容器中
   const bundledSvg = `<svg ${attributesString}>
 ${svgGroups.join('\n')}
 </svg>`;
-  
+
   return bundledSvg;
 }
 
@@ -612,15 +615,15 @@ ${svgGroups.join('\n')}
  * @returns Promise<string> 生成的 Blob URL
  */
 export async function bundleSvgs(
-  svgMap: Record<string, string>, 
+  svgMap: Record<string, string>,
   svgAttributes?: Record<string, string | number>
 ): Promise<string> {
   const bundledSvg = await createBundledSvgString(svgMap, svgAttributes);
-  
+
   // 创建 Blob 和 URL
   const blob = new Blob([bundledSvg], { type: 'image/svg+xml' });
   const url = URL.createObjectURL(blob);
-  
+
   return url;
 }
 
@@ -631,7 +634,7 @@ export async function bundleSvgs(
  * @returns Promise<string> 合并后的 SVG 字符串
  */
 export async function bundleSvgsString(
-  svgMap: Record<string, string>, 
+  svgMap: Record<string, string>,
   svgAttributes?: Record<string, string | number>
 ): Promise<string> {
   return createBundledSvgString(svgMap, svgAttributes);
@@ -644,22 +647,22 @@ export async function bundleSvgsString(
  */
 function isSvgContent(content: string): boolean {
   const trimmedContent = content.trim();
-  
+
   // 检查是否以 XML 声明开头
   if (trimmedContent.startsWith('<?xml')) {
     return trimmedContent.includes('<svg');
   }
-  
+
   // 检查是否直接以 <svg 开头
   if (trimmedContent.startsWith('<svg')) {
     return true;
   }
-  
+
   // 检查是否以 DOCTYPE 开头（某些 SVG 可能只有 DOCTYPE 而没有 XML 声明）
   if (trimmedContent.startsWith('<!DOCTYPE svg')) {
     return true;
   }
-  
+
   return false;
 }
 
@@ -671,26 +674,26 @@ function isSvgContent(content: string): boolean {
 function extractSvgInnerContent(svgContent: string): string {
   // 移除多余的空白字符
   let cleanContent = svgContent.trim();
-  
+
   // 移除 XML 声明（<?xml ... ?>）
   cleanContent = cleanContent.replace(/<\?xml[^?]*\?>\s*/gi, '');
-  
+
   // 移除 DOCTYPE 声明
   cleanContent = cleanContent.replace(/<!DOCTYPE[^>]*>\s*/gi, '');
-  
+
   // 移除其他可能的处理指令
   cleanContent = cleanContent.replace(/<\?[^?]*\?>\s*/gi, '');
-  
+
   // 重新移除可能产生的多余空白
   cleanContent = cleanContent.trim();
-  
+
   // 使用正则表达式匹配 svg 开始和结束标签
   const svgMatch = cleanContent.match(/<svg[^>]*>([\s\S]*?)<\/svg>/i);
-  
+
   if (svgMatch && svgMatch[1]) {
     return svgMatch[1].trim();
   }
-  
+
   // 如果没有匹配到 svg 标签，可能内容本身就不是完整的 svg
   // 尝试检查是否以 svg 标签开头
   if (cleanContent.startsWith('<svg')) {
@@ -705,7 +708,7 @@ function extractSvgInnerContent(svgContent: string): string {
       }
     }
   }
-  
+
   // 如果都不匹配，返回原内容（可能已经是内部内容）
   return cleanContent;
 }
@@ -718,17 +721,17 @@ function extractSvgInnerContent(svgContent: string): string {
 export function extractViewBoxInfo(svgContent: string) {
   const svgMatch = svgContent.match(/<svg[^>]*>/i);
   if (!svgMatch) return null;
-  
+
   const svgTag = svgMatch[0];
   const viewBoxMatch = svgTag.match(/viewBox\s*=\s*["']([^"']+)["']/i);
-  
+
   if (!viewBoxMatch) return null;
-  
+
   const viewBoxStr = viewBoxMatch[1];
   const values = viewBoxStr.trim().split(/\s+/).map(Number);
-  
+
   if (values.length !== 4) return null;
-  
+
   return {
     values: [values[0], values[1], values[2], values[3]] as [number, number, number, number],
     original: viewBoxStr
@@ -747,14 +750,14 @@ export function extractDefsInfo(svgContent: string) {
     others: {} as Record<string, string>,
     raw: undefined as string | undefined
   };
-  
+
   // 提取整个defs块
   const defsMatch = svgContent.match(/<defs[^>]*>([\s\S]*?)<\/defs>/i);
   if (!defsMatch) return defsInfo;
-  
+
   defsInfo.raw = defsMatch[0];
   const defsContent = defsMatch[1];
-  
+
   // 提取线性渐变
   const linearGradients = defsContent.match(/<linearGradient[^>]*>[\s\S]*?<\/linearGradient>/gi);
   if (linearGradients) {
@@ -765,7 +768,7 @@ export function extractDefsInfo(svgContent: string) {
       }
     });
   }
-  
+
   // 提取径向渐变
   const radialGradients = defsContent.match(/<radialGradient[^>]*>[\s\S]*?<\/radialGradient>/gi);
   if (radialGradients) {
@@ -776,7 +779,7 @@ export function extractDefsInfo(svgContent: string) {
       }
     });
   }
-  
+
   // 提取图案
   const patterns = defsContent.match(/<pattern[^>]*>[\s\S]*?<\/pattern>/gi);
   if (patterns) {
@@ -787,7 +790,7 @@ export function extractDefsInfo(svgContent: string) {
       }
     });
   }
-  
+
   // 提取其他定义（滤镜、遮罩等）
   const others = defsContent.match(/<(?!linearGradient|radialGradient|pattern)[^>]+>[\s\S]*?<\/[^>]+>/gi);
   if (others) {
@@ -798,7 +801,7 @@ export function extractDefsInfo(svgContent: string) {
       }
     });
   }
-  
+
   return defsInfo;
 }
 
@@ -810,10 +813,10 @@ export function extractDefsInfo(svgContent: string) {
 export function extractSvgRootAttributes(svgContent: string) {
   const svgMatch = svgContent.match(/<svg([^>]*)>/i);
   if (!svgMatch) return {};
-  
+
   const attributes: Record<string, string> = {};
   const attrStr = svgMatch[1];
-  
+
   // 简单的属性解析（可以用更复杂的解析器）
   const attrMatches = attrStr.match(/(\w+)\s*=\s*["']([^"']*)["']/g);
   if (attrMatches) {
@@ -824,6 +827,6 @@ export function extractSvgRootAttributes(svgContent: string) {
       }
     });
   }
-  
+
   return attributes;
-} 
+}

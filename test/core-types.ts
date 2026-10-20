@@ -16,3 +16,21 @@ const inputs: MorphPath[] = [{ d: shape, allowReverse: false }];
 const plan: MorphPlan = createMorphPlan(inputs, inputs);
 const frame: string[] = plan.frame(springProgress(0.5));
 void frame;
+import { createPaintPlan, renderPaintFrame, parseColor } from "../dist/core.js";
+import type { PaintStyle, Gradient } from "../dist/core.js";
+const gradient: Gradient = {
+  type: "linearGradient",
+  attributes: {},
+  stops: [
+    { offset: 0, color: "red" },
+    { offset: 1, color: "blue" },
+  ],
+};
+const paint: PaintStyle = { attributes: {}, fill: gradient };
+const markup: string = renderPaintFrame(
+  ["M0 0L1 1"],
+  createPaintPlan([paint], [paint]).frame(0.5),
+  "node",
+);
+void markup;
+void parseColor("#ff000080");

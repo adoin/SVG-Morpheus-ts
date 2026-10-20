@@ -611,3 +611,23 @@ createMorphPlan(from, to) accepts arrays of { d, closed?, allowReverse? }; d is 
 Open paths allow reversed alignment by default. Closed contours retain winding by default to preserve nonzero-fill holes; allowReverse: true opts into reversal. closed is inferred from each contour’s endpoints when omitted. Appearing or disappearing contours expand or contract around their local centers.
 
 springProgress(t, profile) provides smooth, snappy and bouncy profiles for normalized time. Pass its output to frame for a spring response, or provide progress from your own easing. The planner does not reconstruct distance fields or perform Boolean operations on arbitrary filled regions.
+
+## Color and gradient core (1.5)
+
+The DOM controller and `svg-morpheus-ts/core` share pure paint functions. CSS names, RGB/HSL (including modern space syntax), and four/eight-digit alpha hex are supported. Interpolation uses premultiplied alpha; `none` fades to/from a solid paint. Contextual `currentColor` and CSS variables remain browser-resolved; resolve them to concrete colors for numeric interpolation.
+
+Same-type gradients interpolate stops, direction, focal points, radius and matrices. Unequal stop counts use merged offsets; duplicate stops retain hard edges. Different gradient types, coordinate units or spread methods crossfade. The DOM controller resolves inheritance and viewport percentages; core accepts structured `Gradient` values with `matrix(a b c d e f)` transforms.
+
+`PaintStyle.groups` describes outer-to-inner opacity groups. Paths with the same group id share one compositing group. Do not multiply group opacity into each path. Supply an instance-unique prefix to avoid gradient-id collisions. Inputs are not mutated.
+
+```ts
+import { createPaintPlan, renderPaintFrame } from 'svg-morpheus-ts/core'
+const plan = createPaintPlan(
+  [{ attributes: {}, fill: '#ff000080' }],
+  [{ attributes: {}, fill: {
+    type: 'linearGradient', attributes: { x2: '100%' },
+    stops: [{ offset: 0, color: 'blue' }, { offset: 1, color: 'white' }],
+  } }],
+)
+const body = renderPaintFrame(['M0 0H24V24H0Z'], plan.frame(0.5), 'icon-unique-id')
+```

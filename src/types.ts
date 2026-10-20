@@ -1,37 +1,42 @@
-import type { EasingFunction, CurveData } from './core-types';
-export type { EasingFunction, CurveSegment, CurveData, BoundingBox } from './core-types';
+import type { EasingFunction, CurveData } from "./core-types";
+export type {
+  EasingFunction,
+  CurveSegment,
+  CurveData,
+  BoundingBox,
+} from "./core-types";
 // Animation easing functions | 动画缓动函数类型
 
 // SVG Morpheus configuration options | SVG Morpheus 配置选项
 export interface SVGMorpheusOptions {
   /** Matched cubic geometry by default; legacy retains index-based interpolation. */
-  algorithm?: 'matched' | 'legacy';
+  algorithm?: "matched" | "legacy";
   /** Follow prefers-reduced-motion by default; 'always' switches instantly. */
-  reducedMotion?: 'user' | 'always' | 'never';
-  /** 
+  reducedMotion?: "user" | "always" | "never";
+  /**
    * Initial icon ID to display | 初始显示的图标ID
    * Specifies which icon to display by default when SVGMorpheus is instantiated | 指定 SVGMorpheus 实例化后默认显示哪个图标
    * If not specified, the last icon in the SVG will be used as default | 如果不指定，将使用 SVG 中的最后一个图标作为默认图标
    */
   iconId?: string;
-  
-  /** 
+
+  /**
    * Animation duration in milliseconds | 动画持续时间（毫秒）
    * Controls the playback duration of icon morphing animation | 控制图标变形动画的播放时长
    * @default 750 milliseconds | 750 毫秒
    * @example 1000 // 1 second animation duration | 1秒的动画时长
    */
   duration?: number;
-  
-  /** 
+
+  /**
    * Animation easing function name | 动画缓动函数名称
    * Controls the animation curve, affecting the speed changes of the animation | 控制动画的播放曲线，影响动画的速度变化
    * @default 'quad-in-out'
    * @example 'ease-in', 'ease-out', 'linear', 'bounce' etc. | 'ease-in', 'ease-out', 'linear', 'bounce' 等
    */
   easing?: string;
-  
-  /** 
+
+  /**
    * Icon rotation direction | 图标旋转方向
    * Controls the rotation behavior of icons during morphing | 控制在变形过程中图标的旋转行为
    * - 'clock': Clockwise rotation 360° | 顺时针旋转 360°
@@ -41,20 +46,20 @@ export interface SVGMorpheusOptions {
    * @default 'clock'
    */
   /** Additional spin; matched geometry can still infer an intrinsic turn. */
-  rotation?: 'clock' | 'counterclock' | 'none' | 'random';
+  rotation?: "clock" | "counterclock" | "none" | "random";
 }
 
 // Style attributes for SVG elements | SVG 元素样式属性
 export interface StyleAttributes {
-  'fill-rule'?: string;
-  'stroke-linecap'?: string;
-  'stroke-linejoin'?: string;
+  "fill-rule"?: string;
+  "stroke-linecap"?: string;
+  "stroke-linejoin"?: string;
   fill?: string;
-  'fill-opacity'?: string;
+  "fill-opacity"?: string;
   opacity?: string;
   stroke?: string;
-  'stroke-opacity'?: string;
-  'stroke-width'?: string;
+  "stroke-opacity"?: string;
+  "stroke-width"?: string;
 }
 
 // Normalized color object | 标准化颜色对象
@@ -71,9 +76,9 @@ export interface RGBColor {
 
 // Normalized style values | 标准化样式值
 export interface NormalizedStyle {
-  'fill-rule'?: string;
-  'stroke-linecap'?: string;
-  'stroke-linejoin'?: string;
+  "fill-rule"?: string;
+  "stroke-linecap"?: string;
+  "stroke-linejoin"?: string;
   /** Fill color or gradient reference | 填充颜色或渐变引用 */
   fill?: RGBColor | string;
   /** Stroke color or gradient reference | 描边颜色或渐变引用 */
@@ -81,11 +86,11 @@ export interface NormalizedStyle {
   /** Overall opacity | 整体透明度 */
   opacity?: number;
   /** Fill opacity | 填充透明度 */
-  'fill-opacity'?: number;
+  "fill-opacity"?: number;
   /** Stroke opacity | 描边透明度 */
-  'stroke-opacity'?: number;
+  "stroke-opacity"?: number;
   /** Stroke width | 描边宽度 */
-  'stroke-width'?: number;
+  "stroke-width"?: number;
 }
 
 // Transform values | 变换值
@@ -99,6 +104,8 @@ export interface Transform {
 
 // Icon item structure | 图标项结构
 export interface IconItem {
+  /** Structured paint retained across cancellation and interrupted transitions. */
+  paint?: import("./paint").PaintStyle;
   /** SVG path data | SVG 路径数据 */
   path: string;
   /** Element attributes | 元素属性 */
@@ -125,7 +132,7 @@ export interface ViewBoxInfo {
   original: string;
 }
 
-// SVG definitions information | SVG 定义信息  
+// SVG definitions information | SVG 定义信息
 export interface DefsInfo {
   /** Gradient definitions | 渐变定义 */
   gradients: Record<string, string>;
@@ -163,24 +170,23 @@ export interface MorphNode {
 
 // Bounding box | 边界框
 
-
 // Options for the to() method | to() 方法的选项
 export interface ToMethodOptions {
-  /** 
+  /**
    * Animation duration in milliseconds | 动画持续时间（毫秒）
    * Overrides the instance default animation duration, only applies to current morph | 覆盖实例默认的动画持续时间，仅对当前这次变形生效
    * @example 500 // 0.5 second fast morph | 0.5秒的快速变形
    */
   duration?: number;
-  
-  /** 
+
+  /**
    * Animation easing function name | 动画缓动函数名称
    * Overrides the instance default easing function, only applies to current morph | 覆盖实例默认的缓动函数，仅对当前这次变形生效
    * @example 'ease-in-out' // Slow start and end animation effect | 慢进慢出的动画效果
    */
   easing?: string;
-  
-  /** 
+
+  /**
    * Icon rotation direction | 图标旋转方向
    * Overrides the instance default rotation behavior, only applies to current morph | 覆盖实例默认的旋转行为，仅对当前这次变形生效
    * - 'clock': Clockwise rotation | 顺时针旋转
@@ -189,10 +195,10 @@ export interface ToMethodOptions {
    * - 'random': Random rotation direction | 随机旋转方向
    */
   /** Additional spin; matched geometry can still infer an intrinsic turn. */
-  rotation?: 'clock' | 'counterclock' | 'none' | 'random';
+  rotation?: "clock" | "counterclock" | "none" | "random";
 }
 
-/** 
+/**
  * Callback function type for animation completion | 动画完成时的回调函数类型
  * Called after icon morphing animation completes, used for executing subsequent operations | 在图标变形动画完成后被调用，用于执行后续操作
  * @example
@@ -208,4 +214,4 @@ export type AnimationFrameId = number;
 // Easing functions map | 缓动函数映射
 export interface EasingMap {
   [key: string]: EasingFunction;
-} 
+}

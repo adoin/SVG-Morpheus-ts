@@ -25,3 +25,22 @@ export type {
 
 export { createMorphPlan, springProgress } from "./morph-plan.js";
 export type { MorphPath, MorphPair, MorphPlan } from "./morph-plan.js";
+export {
+  parseColor,
+  colorString,
+  interpolateColor,
+  createPaintPlan,
+  renderPaintFrame,
+  gradientMarkup,
+  svgAttributes,
+  transformPaint,
+} from "./paint.js";
+export type {
+  Color,
+  Paint,
+  Gradient,
+  GradientStop,
+  PaintStyle,
+  PaintLayer,
+  OpacityGroup,
+} from "./paint.js";

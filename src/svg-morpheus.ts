@@ -1,5 +1,7 @@
 import { createMorphPlan } from "./morph-plan";
 import type { MorphPlan } from "./morph-plan";
+import { createPaintPlan, renderPaintFrame, transformPaint } from "./paint";
+import type { PaintStyle, PaintLayer } from "./paint";
 import { readIcon, parseTransform, transformCurve } from "./read-icon";
 import {
   styleNormCalc,
@@ -57,6 +59,10 @@ export class SVGMorpheus {
   private _destroyed = false;
   private _algorithm: "matched" | "legacy" = "matched";
   private _plan?: MorphPlan;
+  private _paintPlan?: ReturnType<typeof createPaintPlan>;
+  private _paintFrame?: PaintLayer[][];
+  private static _sequence = 0;
+  private _paintPrefix = `morpheus-${++SVGMorpheus._sequence}`;
   private _loadTarget?: HTMLElement | SVGSVGElement;
   private _loadHandler?: EventListener;
   private _currentViewBox?: import("./types").ViewBoxInfo;
@@ -310,6 +316,27 @@ export class SVGMorpheus {
             path: transformedPath,
             attrs: updatedAttrsRefs.attrs,
             style: updatedStyleRefs.attrs,
+            paint: item.paint
+              ? {
+                  ...item.paint,
+                  fill: transformPaint(item.paint.fill, [
+                    fromTransformMatrix.scaleX,
+                    0,
+                    0,
+                    fromTransformMatrix.scaleY,
+                    fromTransformMatrix.translateX,
+                    fromTransformMatrix.translateY,
+                  ]),
+                  stroke: transformPaint(item.paint.stroke, [
+                    fromTransformMatrix.scaleX,
+                    0,
+                    0,
+                    fromTransformMatrix.scaleY,
+                    fromTransformMatrix.translateX,
+                    fromTransformMatrix.translateY,
+                  ]),
+                }
+              : undefined,
           };
         });
       }
@@ -559,8 +586,44 @@ export class SVGMorpheus {
       }
 
       this._currentViewBox = targetViewBox;
+      const paint = (item: IconItem): PaintStyle =>
+        item.paint ?? {
+          attributes: { ...item.attrs, ...item.style } as Record<
+            string,
+            string
+          >,
+        };
+      this._paintPlan = createPaintPlan(
+        this._fromIconItems.map(paint),
+        this._toIconItems.map(paint),
+      );
       this._curIconItems = clone(this._fromIconItems);
     }
+  }
+
+  private _renderPaint(): void {
+    if (!this._morphG || !this._paintFrame) return;
+    const host = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    host.innerHTML = renderPaintFrame(
+      this._curIconItems.map((item) => item.path),
+      this._paintFrame,
+      this._paintPrefix,
+    );
+    const used = new Set<number>();
+    for (const path of host.querySelectorAll("path[data-morph-index]")) {
+      const i = Number(path.getAttribute("data-morph-index"));
+      if (used.has(i)) continue;
+      used.add(i);
+      const old = this._morphNodes[i]?.node;
+      if (!old) continue;
+      for (const name of old.getAttributeNames()) old.removeAttribute(name);
+      for (const attr of path.attributes)
+        old.setAttribute(attr.name, attr.value);
+      old.setAttribute("transform", this._curIconItems[i].transStr || "");
+      path.replaceWith(old);
+      this._curIconItems[i].paint = this._paintFrame[i][0]?.style;
+    }
+    this._morphG.replaceChildren(...host.childNodes);
   }
 
   private _updateAnimationProgress(progress: number): void {
@@ -633,6 +696,8 @@ export class SVGMorpheus {
         this._curIconItems[i].transStr || "",
       );
     }
+    this._paintFrame = this._paintPlan?.frame(progress);
+    this._renderPaint();
   }
 
   private _animationEnd(): void {
@@ -677,6 +742,11 @@ export class SVGMorpheus {
     this._curIconId = this._toIconId;
     this._toIconId = "";
     this._curIconItems = clone(this._toIconItems);
+    this._paintFrame = this._paintPlan
+      ?.frame(1)
+      .slice(0, this._toIconItems.length);
+    this._renderPaint();
+    this._paintPlan = undefined;
 
     this._callback();
   }
@@ -763,6 +833,14 @@ export class SVGMorpheus {
           this._morphNodes[i].node.setAttribute("d", item.path);
           this._morphNodes[i].node.removeAttribute("transform");
         }
+      }
+      // Snapshot actual compositing layers, including an interrupted gradient crossfade.
+      if (this._morphG?.querySelector("path") && this._paintFrame) {
+        const snapshot = readIcon("__displayed", this._morphG, this._svgDoc!);
+        this._curIconItems = snapshot.items;
+        this._morphNodes = [...this._morphG.querySelectorAll("path")].map(
+          (node, i) => ({ node, fromIconItemIdx: i, toIconItemIdx: i }),
+        );
       }
       this._toIconId = "";
     }

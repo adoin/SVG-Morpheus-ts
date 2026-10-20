@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-10-20
+
+### Added
+- DOM-free paint API: `parseColor`, `interpolateColor`, `createPaintPlan`, `renderPaintFrame` and structured gradient/opacity-group types, shared by the controller and custom core consumers.
+- Continuous linear/radial gradient stop, direction, focal-point, radius and matrix interpolation. Different gradient types or incompatible coordinate systems crossfade; solid/gradient transitions interpolate gradient stops.
+- Gradient inheritance, unequal stop counts, duplicate hard stops, scoped definition IDs and cancellation snapshots.
+
+### Fixed
+- CSS named colors, four/eight-digit alpha hex, modern RGB/HSL syntax and premultiplied-alpha color interpolation.
+- Group opacity remains a compositing group instead of being multiplied into overlapping children.
+- User-space gradients follow flattened transforms and viewBox conversion.
+
 ## [1.4.1] - 2026-10-20
 
 ### Fixed
@@ -117,4 +129,4 @@ After:  unifiedCenter(147.02, 107.00) for all paths
 - Vite-based build system
 - Full type safety support
 - Backward compatibility with original API
-- Chinese and English documentation 
+- Chinese and English documentation

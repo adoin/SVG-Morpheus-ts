@@ -610,3 +610,23 @@ const paths = plan.frame(springProgress(0.5, 'snappy'))
 开放路径默认允许方向匹配；闭合轮廓默认保留方向，避免破坏非零填充规则的孔洞。`allowReverse: true` 可显式允许反向匹配。`closed` 缺省时从每个轮廓的端点推断。新增或消失的轮廓在自身局部中心展开或收拢。
 
 `springProgress(t, profile)` 提供 smooth、snappy、bouncy 三个配置，输入为归一化时间；将其输出交给 frame 可产生弹簧效果。直接传入原始进度也可以使用自己的缓动。该能力不执行距离场重建或任意填充区域的布尔运算。
+
+## 颜色与渐变内核（1.5）
+
+完整控制器与 `svg-morpheus-ts/core` 共用纯函数颜色引擎。支持 CSS 命名颜色、RGB/HSL（含现代空格语法）、四位/八位透明十六进制颜色。透明色使用预乘 alpha 插值，`none` 与纯色之间平滑淡入淡出。上下文颜色 `currentColor`、CSS 变量保留给浏览器；需要数值插值时先解析为具体颜色。
+
+同类型渐变插值色标、方向、焦点、半径与矩阵；不同色标数量使用合并后的偏移位置采样，重复偏移保留硬边。不同渐变类型、坐标单位或 spreadMethod 之间交叉淡化。DOM 控制器负责继承与视口百分比解析，core 接收结构化 `Gradient`，gradientTransform 应为 `matrix(a b c d e f)`。
+
+`PaintStyle.groups` 表示由外向内的透明度组，相同 id 的路径共享一个合成组。不要提前把组透明度乘入每条路径。每个实例使用唯一 prefix 防止渐变 ID 冲突。传入数组与对象不会被修改。
+
+```ts
+import { createPaintPlan, renderPaintFrame } from 'svg-morpheus-ts/core'
+const plan = createPaintPlan(
+  [{ attributes: {}, fill: '#ff000080' }],
+  [{ attributes: {}, fill: {
+    type: 'linearGradient', attributes: { x2: '100%' },
+    stops: [{ offset: 0, color: 'blue' }, { offset: 1, color: 'white' }],
+  } }],
+)
+const body = renderPaintFrame(['M0 0H24V24H0Z'], plan.frame(0.5), 'icon-unique-id')
+```

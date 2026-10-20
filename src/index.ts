@@ -48,3 +48,19 @@ export {
 } from "./svg-path";
 export { createMorphPlan, springProgress } from "./morph-plan";
 export type { MorphPath, MorphPair, MorphPlan } from "./morph-plan";
+export {
+  parseColor,
+  colorString,
+  interpolateColor,
+  createPaintPlan,
+  renderPaintFrame,
+} from "./paint";
+export type {
+  Color,
+  Paint,
+  Gradient,
+  GradientStop,
+  PaintStyle,
+  PaintLayer,
+  OpacityGroup,
+} from "./paint";
