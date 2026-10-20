@@ -164,6 +164,21 @@ test("eight-digit hexadecimal alpha is retained", () => {
   assert.ok(Math.abs(a.fill.opacity - 128 / 255) < 0.001);
 });
 
+test("percentage group and gradient-stop opacity retain their fractional values", () => {
+  const el = svg(
+    '<defs><linearGradient id="p"><stop offset="0" stop-color="red" stop-opacity="50%"/><stop offset="1" stop-color="blue"/></linearGradient></defs><g id="a" opacity="50%"><path fill="url(#p)" d="M0 0H20V20Z"/></g>',
+  );
+  const m = make(el);
+  const path = el.querySelector("g path");
+  assert.equal(effectiveOpacity(path), 0.5);
+  const id = path.getAttribute("fill").slice(5, -1);
+  assert.equal(
+    el.querySelector(`[id="${id}"] stop`).getAttribute("stop-opacity"),
+    "0.5",
+  );
+  m.destroy();
+});
+
 test("modern CSS space-separated RGB is parsed", () => {
   const [a] = styleToNorm({ fill: "rgb(255 0 0 / 50%)" }, { fill: "blue" });
   assert.equal(a.fill.r, 255);

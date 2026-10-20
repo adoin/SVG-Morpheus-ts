@@ -100,6 +100,8 @@ test("different gradient types crossfade and have independently scoped definitio
   const markup = renderPaintFrame(["M0 0H10V10Z"], frame, "instance-a");
   assert.match(markup, /linearGradient/);
   assert.match(markup, /radialGradient/);
+  assert.match(markup, /isolation:isolate/);
+  assert.match(markup, /mix-blend-mode:plus-lighter/);
   const ids = [...markup.matchAll(/ id="([^"]+)"/g)].map((m) => m[1]);
   assert.equal(ids.length, new Set(ids).size);
   assert.doesNotMatch(

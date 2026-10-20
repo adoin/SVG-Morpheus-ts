@@ -168,6 +168,11 @@ export function readIcon(
   )
     throw new Error("Invalid icon viewBox");
   const items: IconItem[] = [];
+  const alpha = (value: string) =>
+    Math.max(
+      0,
+      Math.min(1, parseFloat(value) / (value.endsWith("%") ? 100 : 1)),
+    );
   let groupSequence = 0;
   const paint = (
     value: string | undefined,
@@ -269,7 +274,7 @@ export function readIcon(
             stop.style.getPropertyValue("stop-color") ||
             stop.getAttribute("stop-color") ||
             "black",
-          opacity: parseFloat(
+          opacity: alpha(
             stop.style.getPropertyValue("stop-opacity") ||
               stop.getAttribute("stop-opacity") ||
               "1",
@@ -306,7 +311,9 @@ export function readIcon(
     if ((node.style.display || node.getAttribute("display")) === "none") return;
     const localOpacity = node.style.opacity || node.getAttribute("opacity");
     attrs.opacity =
-      localOpacity === null || localOpacity === "" ? "1" : localOpacity;
+      localOpacity === null || localOpacity === ""
+        ? "1"
+        : String(alpha(localOpacity));
     const matrix = multiply(
       parent,
       parseTransform(node.getAttribute("transform") || ""),
@@ -314,12 +321,22 @@ export function readIcon(
     if (node.localName === "svg" && node !== element)
       throw new Error("Nested SVG viewports are not supported");
     if (["g", "svg", "a"].includes(node.localName)) {
+      const blend =
+        node.style.mixBlendMode === "plus-lighter"
+          ? ("plus-lighter" as const)
+          : undefined;
+      const isolate = node.style.isolation === "isolate";
       const nextGroups =
-        Number(attrs.opacity) === 1
+        Number(attrs.opacity) === 1 && !blend && !isolate
           ? groups
           : [
               ...groups,
-              { id: String(groupSequence++), opacity: Number(attrs.opacity) },
+              {
+                id: String(groupSequence++),
+                opacity: Number(attrs.opacity),
+                blend,
+                isolate,
+              },
             ];
       delete attrs.opacity;
       for (const child of Array.from(node.children))

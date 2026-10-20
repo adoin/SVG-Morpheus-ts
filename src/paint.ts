@@ -20,6 +20,8 @@ export type Paint = string | Gradient;
 export interface OpacityGroup {
   id: string;
   opacity: number;
+  blend?: "plus-lighter";
+  isolate?: boolean;
 }
 export interface PaintStyle {
   attributes: Record<string, string>;
@@ -183,6 +185,11 @@ function compatible(a: Paint, b: Paint): boolean {
     )
   )
     return false;
+  if (
+    [...a.stops, ...b.stops].some((s) => !parseColor(s.color)) &&
+    JSON.stringify(a.stops) !== JSON.stringify(b.stops)
+  )
+    return false;
   if (a.attributes.gradientUnits === "userSpaceOnUse") {
     for (const k of [
       "x1",
@@ -330,13 +337,29 @@ export function createPaintPlan(
   const ag = topology(a),
     bg = topology(b);
   const groupKey = (id: string, ids: number[], styles: readonly PaintStyle[]) =>
-    `${styles[ids[0]].groups!.findIndex((g) => g.id === id)}:${ids.join(",")}`;
+    `${styles[ids[0]].groups!.findIndex((g) => g.id === id)}:${ids.join(",")}:${JSON.stringify(styles[ids[0]].groups!.find((g) => g.id === id)?.blend)}:${styles[ids[0]].groups!.find((g) => g.id === id)?.isolate ?? false}`;
   const sourceGroups = new Map(
     [...ag].map(([id, ids]) => [groupKey(id, ids, a), id]),
   );
   const blendGroups =
     [...bg].every(([id, ids]) => sourceGroups.has(groupKey(id, ids, b))) &&
     ag.size === bg.size;
+  const crossfade =
+    !blendGroups ||
+    a.some((start, i) => {
+      const end = b[i];
+      return (
+        end &&
+        (!compatible(
+          start.fill ?? start.attributes.fill ?? "black",
+          end.fill ?? end.attributes.fill ?? "black",
+        ) ||
+          !compatible(
+            start.stroke ?? start.attributes.stroke ?? "none",
+            end.stroke ?? end.attributes.stroke ?? "none",
+          ))
+      );
+    });
   return {
     frame(progress: number): PaintLayer[][] {
       if (!Number.isFinite(progress))
@@ -353,7 +376,7 @@ export function createPaintPlan(
           bf = end.fill ?? end.attributes.fill ?? "black";
         const as = start.stroke ?? start.attributes.stroke ?? "none",
           bs = end.stroke ?? end.attributes.stroke ?? "none";
-        if (!blendGroups || !compatible(af, bf) || !compatible(as, bs))
+        if (crossfade)
           return [
             { style: copy(start), weight: 1 - t },
             { style: copy(end), weight: t },
@@ -382,7 +405,7 @@ export function createPaintPlan(
         const groups = end.groups?.map((g) => {
           const id = sourceGroups.get(groupKey(g.id, bg.get(g.id)!, b));
           const old = a.flatMap((s) => s.groups ?? []).find((s) => s.id === id);
-          return { id: g.id, opacity: lerp(old?.opacity ?? 1, g.opacity, t) };
+          return { ...g, opacity: lerp(old?.opacity ?? 1, g.opacity, t) };
         });
         return [
           {
@@ -435,7 +458,7 @@ export function renderPaintFrame(
       output += "</g>".repeat(open.length - common);
       open = open.slice(0, common);
       for (const g of groups.slice(common)) {
-        output += `<g opacity="${decimal(clamp(g.opacity))}">`;
+        output += `<g opacity="${decimal(clamp(g.opacity))}"${g.blend || g.isolate ? ` style="${g.blend ? "mix-blend-mode:plus-lighter;" : ""}${g.isolate ? "isolation:isolate;" : ""}"` : ""}>`;
         open.push(g.id);
       }
       const attrs = { ...style.attributes };
@@ -450,8 +473,13 @@ export function renderPaintFrame(
       output += `<g opacity="${decimal(commonWeight === 1 ? weight : 1)}"><path data-morph-index="${i}" d="${escape(d)}" ${svgAttributes(attrs)}/></g>`;
     });
     layers.push(
-      `<g opacity="${decimal(commonWeight)}">${output}${"</g>".repeat(open.length)}</g>`,
+      `<g opacity="${decimal(commonWeight)}"${count > 1 ? ' style="mix-blend-mode:plus-lighter"' : ""}>${output}${"</g>".repeat(open.length)}</g>`,
     );
   }
-  return (defs ? `<defs>${defs}</defs>` : "") + layers.join("");
+  return (
+    (defs ? `<defs>${defs}</defs>` : "") +
+    (count > 1
+      ? `<g style="isolation:isolate">${layers.join("")}</g>`
+      : layers.join(""))
+  );
 }
