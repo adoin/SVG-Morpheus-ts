@@ -64,7 +64,7 @@ icons.to("close");
 | `addIcon(id, svg)`            | 从 SVG 字符串或元素添加、替换图标。              |
 | `removeIcon(id)`              | 删除图标，返回是否存在该 id。                    |
 | `getIconIds()`                | 返回已注册图标 id。                              |
-| `isAnimating`               | 返回是否有待执行动画帧。                         |
+| `isAnimating`                 | 返回是否有待执行动画帧。                         |
 | `destroy()`                   | 取消动画并移除监听，可重复调用。                 |
 
 ### 弹簧效果
@@ -79,6 +79,59 @@ icons.to("close", { duration: 600, easing: "spring-snappy" });
 ```
 
 支持 `smooth`、`snappy`、`bouncy`。默认遵循系统减少动态效果设置。
+
+## 接入项目已有的 SVG
+
+准备固定容器，例如 `<svg id="project-icon" viewBox="0 0 24 24"></svg>`，切换期间始终保留同一个元素。
+
+Vite 项目使用 `?raw` 把已有文件作为 **SVG 文本**导入：
+
+```ts
+import SVGMorpheus from "svg-morpheus-ts";
+import menu from "./assets/menu.svg?raw";
+import close from "./assets/close.svg?raw";
+
+const morph = new SVGMorpheus("#project-icon", { rotation: "none" });
+morph.addIcon("menu", menu);
+morph.addIcon("close", close);
+morph.set("menu");
+// 项目状态变化时：
+morph.to("close");
+// 卸载时：morph.destroy()
+```
+
+通过 URL 加载时，先 `fetch(url)` 并检查 `response.ok`，再把 `await response.text()` 交给 `addIcon`。URL 字符串、Vue/React 组件、`img`、CSS mask 和字体图标本身都不是 SVG 路径数据。已有内联 SVG 元素也可直接注册：`morph.addIcon('logo', document.querySelector('#source-logo'))`。
+
+保留文件中的 `viewBox`、绘制属性及定义；挂载后创建实例，卸载时销毁。参见[完整 URL 加载代码与本地文件试用区](https://adoin.github.io/SVG-Morpheus-ts/#project-svg)。
+
+## 接入 Iconify 数据
+
+Iconify 是可选接入；以下依赖属于使用方项目，不会成为变形库的运行时依赖。
+
+```sh
+npm install @iconify/utils @iconify-json/lucide
+```
+
+```ts
+import SVGMorpheus from "svg-morpheus-ts";
+import { icons } from "@iconify-json/lucide";
+import { getIconData, iconToSVG, iconToHTML, replaceIDs } from "@iconify/utils";
+
+const morph = new SVGMorpheus("#project-icon", { rotation: "none" });
+for (const name of ["menu", "x"]) {
+  const data = getIconData(icons, name);
+  if (!data) throw new Error(`Unknown icon: ${name}`);
+  const { body, attributes } = iconToSVG(data);
+  morph.addIcon(`lucide:${name}`, iconToHTML(replaceIDs(body), attributes));
+}
+morph.set("lucide:menu");
+morph.to("lucide:x");
+// 卸载时：morph.destroy()
+```
+
+`getIconData` 解析集合默认值与别名，`iconToSVG` 处理图标尺寸、旋转及翻转。如果项目已有 `IconifyIcon` 对象，直接交给 `iconToSVG`，不需要安装集合包；Iconify API 返回的集合 JSON 也能按相同方式处理。
+
+注册 id 是你项目的映射，工具**不会自动根据 `prefix:name` 联网取图**。集合导入与按需提取由构建工具负责；本站示例只打包三枚 Lucide 图标，不包含整个集合。带有不支持的蒙版或滤镜的图标不能直接变形。[接入指南](https://adoin.github.io/SVG-Morpheus-ts/#iconify) · [Iconify 官方转换示例](https://iconify.design/docs/libraries/utils/examples/export-svg-from-icon-set.html)。
 
 ## 无 DOM 的 core
 
@@ -104,12 +157,6 @@ const paths: string[] = plan.frame(springProgress(0.5, "snappy"));
 - 中断后从当前几何与绘制结果继续。
 
 控制器不支持蒙版、裁切、滤镜、图案和嵌套 SVG 视口。无 DOM 渲染器做数值插值前，应自行解析 CSS 变量与 `currentColor`。几何匹配不能保证任意不相关图标都具备语义正确、拓扑不变的过渡。
-
-## 升级到 2.0
-
-包名及 `svg-morpheus-ts/core` 导入入口不变，保留 ESM、CommonJS、浏览器 UMD 构建，无运行时依赖。
-
-原生描边新增、消失的轮廓现在沿原路径画出/收回。连续中断不会将绘制层反复扩增成几何路径，消失描边不再残留圆端点。填充图形保留原有行为。使用自定义缓动或视觉快照的项目应针对这些变化复核。[更新日志](./CHANGELOG.md)。
 
 ## 研究实验单独提供
 

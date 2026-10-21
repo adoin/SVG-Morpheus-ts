@@ -44,15 +44,15 @@
     "material-design"
   ],
   "scripts": {
-    "dev": "vite --host",
+    "dev": "node scripts/generate-doc-icons.mjs && vite --host",
     "build": "tsc && vite build && vite build --mode core",
-    "demo": "pnpm build && vite --mode demo --host",
-    "build:demo": "pnpm build && vite build --mode demo",
+    "demo": "node scripts/generate-doc-icons.mjs && pnpm build && vite --mode demo --host",
+    "build:demo": "node scripts/generate-doc-icons.mjs && pnpm build && vite build --mode demo",
     "preview": "vite preview",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "type-check": "tsc --noEmit",
-    "test": "pnpm build && node --test test/core.test.mjs test/lifecycle.test.mjs test/matching.test.mjs test/paint.test.mjs test/docs.test.mjs research/shared-boundaries.test.mjs research/shared-stroke.test.mjs research/shared-fill.test.mjs research/icon-gallery.test.mjs && pnpm test:types",
+    "test": "pnpm build && node --test test/core.test.mjs test/lifecycle.test.mjs test/matching.test.mjs test/paint.test.mjs test/docs.test.mjs test/project-svg.test.mjs research/shared-boundaries.test.mjs research/shared-stroke.test.mjs research/shared-fill.test.mjs research/icon-gallery.test.mjs && pnpm test:types",
     "test:types": "tsc --noEmit --strict --moduleResolution NodeNext --module NodeNext --target ES2020 --lib ES2020 --types node test/core-types.ts",
     "test:research": "pnpm build && node --test research/shared-boundaries.test.mjs research/shared-stroke.test.mjs research/shared-fill.test.mjs research/icon-gallery.test.mjs"
   },
@@ -61,6 +61,8 @@
     "pnpm": ">=9.0.0"
   },
   "devDependencies": {
+    "@iconify-json/lucide": "1.2.143",
+    "@iconify/utils": "3.1.4",
     "@types/node": "^20.10.0",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",

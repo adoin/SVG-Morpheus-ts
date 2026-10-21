@@ -64,7 +64,7 @@ The constructor accepts an SVG element, selector, or loaded SVG `object`. Constr
 | `addIcon(id, svg)`            | Add/replace from an SVG string or element.                    |
 | `removeIcon(id)`              | Remove an icon; return whether it existed.                    |
 | `getIconIds()`                | Return registered ids.                                        |
-| `isAnimating`               | Return whether an animation frame is pending.                 |
+| `isAnimating`                 | Return whether an animation frame is pending.                 |
 | `destroy()`                   | Cancel work and detach listeners; safe to repeat.             |
 
 ### Spring motion
@@ -79,6 +79,59 @@ icons.to("close", { duration: 600, easing: "spring-snappy" });
 ```
 
 Presets: `smooth`, `snappy`, `bouncy`. Reduced motion is respected by default.
+
+## Connect existing project SVGs
+
+Create a stable host such as `<svg id="project-icon" viewBox="0 0 24 24"></svg>`. Keep that element mounted while switching targets.
+
+For Vite, import the existing file **as text** with `?raw`:
+
+```ts
+import SVGMorpheus from "svg-morpheus-ts";
+import menu from "./assets/menu.svg?raw";
+import close from "./assets/close.svg?raw";
+
+const morph = new SVGMorpheus("#project-icon", { rotation: "none" });
+morph.addIcon("menu", menu);
+morph.addIcon("close", close);
+morph.set("menu");
+// When application state changes:
+morph.to("close");
+// On cleanup: morph.destroy()
+```
+
+For URL-based assets, `fetch(url)`, check `response.ok`, and pass `await response.text()` to `addIcon`. A URL string, imported Vue/React component, `img`, CSS mask or icon font is not SVG path data. Existing inline SVG elements work too: `morph.addIcon('logo', document.querySelector('#source-logo'))`.
+
+Keep each file's `viewBox`, paint attributes and definitions. Instantiate after mounting and destroy on unmount. See the [complete URL-loading example and editable local-file demo](https://adoin.github.io/SVG-Morpheus-ts/?lang=en#project-svg).
+
+## Connect Iconify data
+
+Iconify is optional; these packages belong to your application, not the morphing library's runtime dependencies.
+
+```sh
+npm install @iconify/utils @iconify-json/lucide
+```
+
+```ts
+import SVGMorpheus from "svg-morpheus-ts";
+import { icons } from "@iconify-json/lucide";
+import { getIconData, iconToSVG, iconToHTML, replaceIDs } from "@iconify/utils";
+
+const morph = new SVGMorpheus("#project-icon", { rotation: "none" });
+for (const name of ["menu", "x"]) {
+  const data = getIconData(icons, name);
+  if (!data) throw new Error(`Unknown icon: ${name}`);
+  const { body, attributes } = iconToSVG(data);
+  morph.addIcon(`lucide:${name}`, iconToHTML(replaceIDs(body), attributes));
+}
+morph.set("lucide:menu");
+morph.to("lucide:x");
+// On cleanup: morph.destroy()
+```
+
+`getIconData` resolves collection defaults and aliases; `iconToSVG` applies icon dimensions, rotation and flips. If you already have an `IconifyIcon` object, pass it directly to `iconToSVG` instead of installing the collection. JSON from the Iconify API can be processed in the same way.
+
+Registered ids are your application's mapping: the library does **not** automatically fetch `prefix:name`. Keep imports/subset extraction in your build pipeline; the docs demo bundles three Lucide icons, not a complete collection. Icons using unsupported masks or filters cannot morph directly. [Integration guide](https://adoin.github.io/SVG-Morpheus-ts/?lang=en#iconify) · [Official Iconify conversion guide](https://iconify.design/docs/libraries/utils/examples/export-svg-from-icon-set.html).
 
 ## DOM-free core
 
@@ -104,12 +157,6 @@ Use `createPaintPlan()` and `renderPaintFrame()` for paint, with an instance-uni
 - Interrupted geometry and paint continue from the displayed frame.
 
 The controller does not support masks, clipping, filters, patterns or nested SVG viewports. Resolve `currentColor` and CSS variables before numeric interpolation in a DOM-free renderer. Geometric matching does not guarantee semantic or topology-preserving transitions for arbitrary unrelated artwork.
-
-## Upgrade to 2.0
-
-Package name and `svg-morpheus-ts/core` imports are unchanged. ESM, CommonJS and browser UMD builds remain available, with no runtime dependencies.
-
-New/disappearing native strokes now draw/retract along their original paths. Repeated interruption no longer multiplies geometry paths, and disappearing strokes no longer linger as round endpoint dots. Filled-shape behavior is preserved. Review custom easing and visual snapshots against these changes. [Release notes](./CHANGELOG.md).
 
 ## Research is separate
 

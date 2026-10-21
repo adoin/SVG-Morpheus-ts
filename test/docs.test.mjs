@@ -32,11 +32,18 @@ test("documentation anchors and English/Chinese copy stay complete", () => {
     if (id) assert.ok(doc.getElementById(id), id);
   }
   assert.ok(doc.querySelector("#changelog"));
-  assert.ok(doc.querySelector("#migration"));
+  assert.equal(doc.querySelector("#migration"), null);
+  assert.ok(doc.querySelector("#project-svg"));
+  assert.ok(doc.querySelector("#iconify"));
   assert.ok(doc.querySelector(".research-notice"));
 });
 test("README and on-site release notes match the published manifest version", () => {
   const pkg = JSON.parse(read("../package.json"));
+  assert.equal(
+    Object.keys(pkg.dependencies ?? {}).length,
+    0,
+    "Iconify must remain an optional application/docs integration",
+  );
   for (const p of ["../README.md", "../README.zh.md"]) {
     const text = read(p);
     assert.ok(text.includes(pkg.version));

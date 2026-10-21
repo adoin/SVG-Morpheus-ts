@@ -5,8 +5,39 @@ import { createSharedStrokePlan } from "../research/shared-stroke.mjs";
 import { createSharedFillPlan } from "../research/shared-fill.mjs";
 import pkg from "../package.json";
 import { createIconGallery } from "./icon-gallery.mjs";
+import { createProjectIcons } from "./project-icons.mjs";
 
 const english = {
+  projectTitle: "Use your project’s SVGs",
+  projectIntro:
+    "Keep your existing artwork. Register SVG strings or elements with addIcon(id, svg), keep one SVG host mounted, then call to(id) when application state changes. The id is your name for an icon, not a file path.",
+  projectVite: "Option 1: import existing files with Vite",
+  projectViteHint:
+    "?raw returns SVG file text, not a URL or framework component. Replace these paths with your existing .svg files and run this code after mounting the host.",
+  projectURLs: "Option 2: load SVG URLs in a web page",
+  projectURLsHint:
+    'addIcon does not download URLs. Without a bundler, copy dist/index.js from the release package to your site’s vendor/svg-morpheus-ts/index.js and run this code in script type="module", using deployed SVG asset URLs.',
+  projectDOM:
+    "Existing inline SVG elements also work: morph.addIcon('logo', document.querySelector('#source-logo')). In a framework, create one controller after mounting and destroy() on cleanup. Keep the preview SVG mounted between changes.",
+  projectTry: "Try your own SVGs",
+  projectTryHint:
+    "Paste two complete SVGs or choose two local .svg files. Files are read in this browser only and are not uploaded. Register them, then switch between A and B; preset buttons restore file-based or Iconify examples.",
+  projectLocal: "Local SVG example",
+  projectIconify: "Iconify example",
+  projectFiles: "Choose two SVG files",
+  projectRegister: "Register both SVGs",
+  projectLimits:
+    "Use trusted SVG artwork with actual paths or basic shapes. img, CSS masks, icon fonts and use/symbol references need their underlying SVG data first. Masks, filters, clipping and external-CSS-dependent paint are not automatically supported.",
+  iconifyTitle: "Use Iconify data",
+  iconifyIntro:
+    "Use a local Iconify set or icon data you already have. No need to render an Iconify component and scrape its DOM. Official Utils resolves dimensions, aliases, rotation and flips before the SVG is registered with the same morph controller.",
+  iconifyHint:
+    "This example uses the project-icon host and A/B buttons above. getIconData takes the unprefixed name; registered ids match application state such as lucide:menu and lucide:x.",
+  iconifyData:
+    "For existing IconifyIcon data ({ body, width, height, ... }), pass the object straight to iconToSVG; a complete collection package is unnecessary. Collection JSON from the Iconify API can also be passed to getIconData.",
+  iconifyScope:
+    "svg-morpheus-ts does not fetch prefix:name automatically and does not require Iconify. Your build tool owns collection imports and subset extraction; this demo bundles only three Lucide icons. Iconify artwork using unsupported masks or filters cannot morph directly.",
+  iconifyOfficial: "Official Iconify conversion example",
   skip: "Skip to content",
   tryGallery: "Open the icon playground",
   readStart: "Start with a minimal example →",
@@ -19,18 +50,7 @@ const english = {
   featureCore: "Browser controller + independent core",
   featureCoreHint:
     "TypeScript, ESM/CJS, no runtime dependencies; the core works in Node/SSR.",
-  migration: "Upgrade to 2.0",
   changelog: "Changelog",
-  migrationHint:
-    "The package name, DOM controller and core import paths are unchanged. Keep your to() calls and destroy() on cleanup. Try custom artwork in the playground before updating visual snapshots.",
-  migrationDraw:
-    "New or disappearing stroke-only contours draw/retract along their paths. Filled artwork does not use this rule.",
-  migrationPaint:
-    "Interrupted paint layers stay on one logical geometry path instead of multiplying geometry paths.",
-  migrationDefaults:
-    "Defaults remain 750ms, quad-in-out easing and clock spin. Use rotation: 'none' to disable extra spin.",
-  migrationCore:
-    "Custom core renderers can set draw: true on stroked MorphPath inputs. Centerline inference and locking shared filled regions are not automatic features.",
   releaseStroke:
     "Native stroked contours can draw and retract along their original paths.",
   releaseInterrupt:
@@ -38,7 +58,7 @@ const english = {
   releaseDots:
     "Fixed round-capped disappearing strokes lingering as endpoint dots when switching to solid artwork.",
   releaseDocs:
-    "Added a 43-icon, 17-pair playground and refreshed bilingual usage and upgrade guides.",
+    "Added a 43-icon, 17-pair playground and refreshed bilingual usage guides.",
   allReleases: "Read the full release history →",
   researchScope: "EXPERIMENTAL · NOT INCLUDED IN THE NPM PACKAGE",
   researchScopeHint:
@@ -164,6 +184,7 @@ document.querySelector("[data-version]").textContent = `v${pkg.version}`;
 for (const preset of ["snappy", "bouncy"])
   easings[`spring-${preset}`] = (t) => springProgress(t, preset);
 const gallery = createIconGallery();
+const projectIcons = createProjectIcons();
 const controller = new SVGMorpheus("#demo", {
   iconId: "menu",
   duration: 750,
@@ -220,6 +241,7 @@ function renderResearch() {
 function setLanguage(value) {
   language = value;
   gallery.setLanguage(value);
+  projectIcons.setLanguage(value);
   document
     .querySelector("#eye-motion")
     .setAttribute(
@@ -402,5 +424,6 @@ window.addEventListener("pagehide", (event) => {
   if (!event.persisted) {
     controller.destroy();
     gallery.destroy();
+    projectIcons.destroy();
   }
 });

@@ -28,10 +28,11 @@
     <div class="layout">
       <nav class="sidebar" aria-label="Documentation">
         <a href="#quickstart" data-i18n="start">开始使用</a
+        ><a href="#project-svg" data-i18n="projectTitle">接入项目 SVG</a
+        ><a href="#iconify" data-i18n="iconifyTitle">接入 Iconify</a
         ><a href="#playground" data-i18n="try">交互示例</a
         ><a href="#icon-gallery" data-i18n="gallery">图标试验场</a
         ><a href="#api">API</a><a href="#core" data-i18n="core">无 DOM 内核</a
-        ><a href="#migration" data-i18n="migration">升级到 2.0</a
         ><a href="#changelog" data-i18n="changelog">更新日志</a
         ><a href="#research" data-i18n="research">公共边界研究</a
         ><a href="#support" data-i18n="support">支持范围</a
@@ -88,6 +89,175 @@ const icon = new SVGMorpheus('#icons', {
 })
 icon.to('close')
 // Cleanup: icon.destroy()</code></pre>
+        </section>
+        <section id="project-svg">
+          <h2 data-i18n="projectTitle">接入项目 SVG</h2>
+          <p data-i18n="projectIntro">
+            不用重画图标。准备一个固定的 SVG 容器，把已有 SVG 字符串或元素通过
+            addIcon(id, svg) 注册；项目状态变化时调用 to(id)。id
+            由你命名，不是文件路径。
+          </p>
+          <pre><code>&lt;svg id="project-icon" viewBox="0 0 24 24" role="img" aria-label="Icon"&gt;&lt;/svg&gt;
+&lt;button id="show-a"&gt;A&lt;/button&gt;
+&lt;button id="show-b"&gt;B&lt;/button&gt;</code></pre>
+          <h3 data-i18n="projectVite">方式一：Vite 导入已有文件</h3>
+          <p data-i18n="projectViteHint">
+            ?raw 返回 SVG 文件文本，不是 URL，也不是 Vue/React
+            组件。把路径换成项目已有的两个 .svg 文件；以下代码在页面挂载后执行。
+          </p>
+          <pre><code>import SVGMorpheus from 'svg-morpheus-ts'
+import menuSVG from './assets/menu.svg?raw'
+import closeSVG from './assets/close.svg?raw'
+
+const morph = new SVGMorpheus('#project-icon', {
+  duration: 600, rotation: 'none',
+})
+morph.addIcon('menu', menuSVG)
+morph.addIcon('close', closeSVG)
+morph.set('menu')
+
+document.querySelector('#show-a').onclick = () =&gt; morph.to('menu')
+document.querySelector('#show-b').onclick = () =&gt; morph.to('close')
+// Cleanup: morph.destroy()</code></pre>
+          <h3 data-i18n="projectURLs">方式二：普通网页加载 SVG URL</h3>
+          <p data-i18n="projectURLsHint">
+            addIcon 不负责下载 URL；先 fetch 文件文本。无构建工具时，将发布包的
+            dist/index.js 复制到站点的 vendor/svg-morpheus-ts/index.js，在
+            script type="module" 中运行以下代码；使用部署后可访问的 SVG 地址。
+          </p>
+          <pre><code>import SVGMorpheus from './vendor/svg-morpheus-ts/index.js'
+
+const sources = { menu: './icons/menu.svg', close: './icons/close.svg' }
+const files = await Promise.all(Object.entries(sources).map(async ([id, url]) =&gt; {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`${url}: ${response.status}`)
+  return [id, await response.text()]
+}))
+const morph = new SVGMorpheus('#project-icon', { rotation: 'none' })
+for (const [id, svg] of files) morph.addIcon(id, svg)
+morph.set('menu')
+document.querySelector('#show-a').onclick = () =&gt; morph.to('menu')
+document.querySelector('#show-b').onclick = () =&gt; morph.to('close')
+// Cleanup: morph.destroy()</code></pre>
+          <p data-i18n="projectDOM">
+            已有内联 SVG 元素也可以直接传给 addIcon，例如 morph.addIcon('logo',
+            document.querySelector('#source-logo'))。框架项目只保留一个预览 SVG
+            实例，在挂载后创建控制器，在卸载时
+            destroy()；不要每次切换都重建容器。
+          </p>
+          <h3 data-i18n="projectTry">用自己的 SVG 试一下</h3>
+          <p data-i18n="projectTryHint">
+            粘贴两份完整 SVG，或选择两个本地 .svg
+            文件。文件只在当前浏览器读取，不上传到服务器。点击“注册两份
+            SVG”后，用 A/B 连续切换；示例按钮可恢复本地文件或 Iconify 数据。
+          </p>
+          <div class="targets">
+            <button id="project-local" type="button" data-i18n="projectLocal">
+              本地 SVG 示例</button
+            ><button
+              id="project-iconify"
+              type="button"
+              data-i18n="projectIconify"
+            >
+              Iconify 示例
+            </button>
+          </div>
+          <label class="file-picker"
+            ><span data-i18n="projectFiles">选择两份 SVG 文件</span
+            ><input
+              id="project-files"
+              type="file"
+              accept=".svg,image/svg+xml"
+              multiple
+          /></label>
+          <div class="project-sources">
+            <label
+              >SVG A<textarea
+                id="project-a"
+                spellcheck="false"
+                rows="8"
+              ></textarea></label
+            ><label
+              >SVG B<textarea
+                id="project-b"
+                spellcheck="false"
+                rows="8"
+              ></textarea>
+            </label>
+          </div>
+          <div class="targets">
+            <button
+              id="project-register"
+              type="button"
+              data-i18n="projectRegister"
+            >
+              注册两份 SVG</button
+            ><button id="project-show-a" type="button">切换到 A</button
+            ><button id="project-show-b" type="button">切换到 B</button>
+          </div>
+          <div class="project-preview">
+            <svg
+              id="project-preview"
+              viewBox="0 0 24 24"
+              role="img"
+              aria-label="项目 SVG 变形预览"
+            ></svg>
+          </div>
+          <p id="project-status" role="status" aria-live="polite"></p>
+          <p class="note" data-i18n="projectLimits">
+            只使用可信的 SVG。图标应包含实际路径或基础图形；img、CSS
+            mask、字体图标和 use/symbol 引用需要先取得其原始 SVG
+            数据。蒙版、滤镜、裁切和依赖外部 CSS 的绘制不属于自动支持范围。
+          </p>
+        </section>
+        <section id="iconify">
+          <h2 data-i18n="iconifyTitle">接入 Iconify</h2>
+          <p data-i18n="iconifyIntro">
+            可以使用 Iconify 的本地图标集合或已取得的图标数据，不需要先渲染
+            Iconify 组件再读取 DOM。用官方 Utils
+            解析集合默认尺寸、别名、旋转和翻转，再把转换出的 SVG
+            注册到同一个变形实例。
+          </p>
+          <pre><code>npm install @iconify/utils @iconify-json/lucide</code></pre>
+          <p data-i18n="iconifyHint">
+            下面继续使用上面的 project-icon 和 A/B 按钮。getIconData
+            的名称不带集合前缀；注册 id 则与项目状态使用的 lucide:menu、lucide:x
+            保持一致。
+          </p>
+          <pre><code>import SVGMorpheus from 'svg-morpheus-ts'
+import { icons } from '@iconify-json/lucide'
+import { getIconData, iconToSVG, iconToHTML, replaceIDs } from '@iconify/utils'
+
+function svgFor(name) {
+  const data = getIconData(icons, name)
+  if (!data) throw new Error(`Unknown icon: lucide:${name}`)
+  const { attributes, body } = iconToSVG(data)
+  return iconToHTML(replaceIDs(body), attributes)
+}
+const morph = new SVGMorpheus('#project-icon', { rotation: 'none' })
+for (const name of ['menu', 'x']) morph.addIcon(`lucide:${name}`, svgFor(name))
+morph.set('lucide:menu')
+document.querySelector('#show-a').onclick = () =&gt; morph.to('lucide:menu')
+document.querySelector('#show-b').onclick = () =&gt; morph.to('lucide:x')
+// Cleanup: morph.destroy()</code></pre>
+          <p data-i18n="iconifyData">
+            如果项目已有 IconifyIcon 格式的 { body, width, height, ... }
+            数据，直接传给 iconToSVG 即可，不需要安装整个图标集合。Iconify API
+            返回的集合 JSON 也可以交给 getIconData 处理。
+          </p>
+          <p class="note" data-i18n="iconifyScope">
+            svg-morpheus-ts 不会根据 prefix:name 自动联网取图，也不强制依赖
+            Iconify。集合导入及按需提取由项目构建工具负责；本站演示只打包三枚
+            Lucide 图标。包含不受支持的蒙版或滤镜的 Iconify 图标不能直接变形。
+          </p>
+          <p>
+            <a
+              href="https://iconify.design/docs/libraries/utils/examples/export-svg-from-icon-set.html"
+              data-i18n="iconifyOfficial"
+              >Iconify 官方转换示例</a
+            >
+            · <a href="./LUCIDE-LICENSE.txt">Lucide · ISC</a>
+          </p>
         </section>
         <section id="playground">
           <h2 data-i18n="try">交互示例</h2>
@@ -403,31 +573,6 @@ const body = renderPaintFrame(paths, paint.frame(0.5), 'unique-icon-id')</code><
             变量保留给浏览器解析。需要数值颜色插值时，先由调用方解析成具体颜色。
           </p>
         </section>
-        <section id="migration">
-          <p class="eyebrow">VERSION 2.0</p>
-          <h2 data-i18n="migration">升级到 2.0</h2>
-          <p data-i18n="migrationHint">
-            包名、DOM 控制器与 core 导入入口不变。继续使用现有 to()
-            调用，并在组件卸载时
-            destroy()。先在试验场检查自定义图标，再更新视觉快照。
-          </p>
-          <ul>
-            <li data-i18n="migrationDraw">
-              纯描边新增或消失的轮廓会沿路径画出/收回，填充路径不启用此规则。
-            </li>
-            <li data-i18n="migrationPaint">
-              中断后的多绘制层保留在同一逻辑路径上，不再成倍累积几何路径。
-            </li>
-            <li data-i18n="migrationDefaults">
-              默认时长仍为 750ms，缓动为 quad-in-out，额外旋转为
-              clock；需要无额外旋转时设置 rotation: 'none'。
-            </li>
-          </ul>
-          <p class="note" data-i18n="migrationCore">
-            自定义 core 渲染器可对描边 MorphPath 设置 draw:
-            true。填充图标的中心线与共同区域锁定不属于自动能力。
-          </p>
-        </section>
         <section id="changelog">
           <h2 data-i18n="changelog">更新日志</h2>
           <p class="release-date">
@@ -444,8 +589,7 @@ const body = renderPaintFrame(paths, paint.frame(0.5), 'unique-icon-id')</code><
               修复描边切到填充图形时，消失的圆端点残留到动画末尾。
             </li>
             <li data-i18n="releaseDocs">
-              新增 43 个图标、17
-              组配对的自由试验场，更新中英文使用指南与升级说明。
+              新增 43 个图标、17 组配对的自由试验场，更新中英文使用指南。
             </li>
           </ul>
           <a
